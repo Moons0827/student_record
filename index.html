@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>학생 행동 기록부</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#1f2733; --sub:#5b6675;
+    --line:#e3e8f0; --brand:#3b5bdb; --brand-d:#2f49b0; --brand-l:#eaefff;
+    --ok:#2b8a3e; --warn:#e8590c; --danger:#c92a2a; --chip:#eef1f8;
+    --shadow:0 1px 3px rgba(20,30,60,.06),0 6px 20px rgba(20,30,60,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo",
+      "Noto Sans KR",sans-serif;
+    background:var(--bg); color:var(--ink); font-size:16px; line-height:1.5;
+    -webkit-text-size-adjust:100%;
+  }
+  header.appbar{
+    position:sticky; top:0; z-index:20; background:var(--brand); color:#fff;
+    padding:12px 18px; display:flex; align-items:center; gap:12px;
+    box-shadow:0 2px 10px rgba(20,30,60,.12);
+  }
+  header.appbar h1{font-size:18px; margin:0; font-weight:700; letter-spacing:-.2px}
+  header.appbar .sp{flex:1}
+  header.appbar .badge{font-size:12px; background:rgba(255,255,255,.18); padding:4px 10px; border-radius:999px}
+  nav.tabs{
+    position:sticky; top:52px; z-index:19; background:var(--card); display:flex;
+    border-bottom:1px solid var(--line); overflow-x:auto;
+  }
+  nav.tabs button{
+    flex:1 0 auto; min-width:82px; border:0; background:transparent; padding:13px 8px;
+    font-size:15px; font-weight:600; color:var(--sub); cursor:pointer; border-bottom:3px solid transparent;
+    white-space:nowrap;
+  }
+  nav.tabs button.active{color:var(--brand); border-bottom-color:var(--brand)}
+  main{max-width:900px; margin:0 auto; padding:18px 16px 80px}
+  .view{display:none}
+  .view.active{display:block}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:var(--shadow); margin-bottom:16px}
+  .card h2{margin:0 0 14px; font-size:16px; font-weight:700}
+  label.f{display:block; font-size:14px; font-weight:600; color:var(--sub); margin:14px 0 6px}
+  label.f:first-child{margin-top:0}
+  input[type=text],input[type=datetime-local],input[type=date],textarea,select{
+    width:100%; padding:12px 13px; border:1.5px solid var(--line); border-radius:10px;
+    font:inherit; color:var(--ink); background:#fff; outline:none;
+  }
+  input:focus,textarea:focus,select:focus{border-color:var(--brand); box-shadow:0 0 0 3px var(--brand-l)}
+  textarea{resize:vertical; min-height:70px}
+  .row{display:flex; gap:12px; flex-wrap:wrap}
+  .row>div{flex:1 1 180px}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:4px}
+  .chip{
+    border:1.5px solid var(--line); background:var(--chip); color:var(--ink);
+    padding:9px 14px; border-radius:999px; font-size:14px; font-weight:600; cursor:pointer; user-select:none;
+  }
+  .chip.on{background:var(--brand); border-color:var(--brand); color:#fff}
+  .check{display:flex; align-items:center; gap:9px; margin-top:8px; font-size:15px; font-weight:600; color:var(--ink); cursor:pointer}
+  .check input{width:20px; height:20px}
+  .confirm-box{background:var(--brand-l); border:1px solid #d4ddff; border-radius:10px; padding:12px 14px; font-size:14px; color:var(--brand-d); margin-top:6px}
+  .sign-wrap{margin-top:6px}
+  .sign-pad{
+    border:2px dashed #b9c3d6; border-radius:12px; background:#fff; touch-action:none;
+    width:100%; height:200px; display:block;
+  }
+  .sign-hint{font-size:13px; color:var(--sub); margin-top:6px; display:flex; justify-content:space-between; align-items:center}
+  .btn{
+    appearance:none; border:0; border-radius:11px; padding:13px 18px; font:inherit; font-weight:700;
+    cursor:pointer; background:var(--brand); color:#fff;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.5; cursor:not-allowed}
+  .btn.lg{width:100%; padding:16px; font-size:17px; margin-top:18px}
+  .btn.ghost{background:#fff; color:var(--brand); border:1.5px solid var(--brand)}
+  .btn.grey{background:#eef1f6; color:var(--ink); border:1.5px solid var(--line)}
+  .btn.danger{background:#fff; color:var(--danger); border:1.5px solid #f3c0c0}
+  .btn.sm{padding:8px 12px; font-size:14px; border-radius:9px}
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  .toolbar .sp{flex:1}
+  .muted{color:var(--sub); font-size:14px}
+  .rec{border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:12px; background:#fff; box-shadow:var(--shadow)}
+  .rec .top{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .rec .name{font-weight:800; font-size:16px}
+  .rec .cls{font-size:13px; color:var(--sub); background:var(--chip); padding:2px 9px; border-radius:999px}
+  .rec .date{font-size:13px; color:var(--sub)}
+  .rec .sp{flex:1}
+  .tag{display:inline-block; font-size:12px; font-weight:700; background:var(--brand-l); color:var(--brand-d); padding:3px 9px; border-radius:6px; margin:2px 4px 2px 0}
+  .tag.red{background:#ffe3e3; color:#c92a2a}
+  .rec .body{margin-top:8px; font-size:14px; color:var(--ink)}
+  .rec .body b{color:var(--sub); font-weight:600}
+  .rec .meta2{margin-top:6px; font-size:13px; color:var(--sub)}
+  .rec .acts{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap}
+  .signed{color:var(--ok); font-size:13px; font-weight:700}
+  .unsigned{color:var(--warn); font-size:13px; font-weight:700}
+  .empty{text-align:center; color:var(--sub); padding:40px 10px}
+  .empty .big{font-size:44px; margin-bottom:8px}
+  .stat-grid{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:6px}
+  .stat{flex:1 1 120px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px; text-align:center; box-shadow:var(--shadow)}
+  .stat .n{font-size:26px; font-weight:800; color:var(--brand)}
+  .stat .l{font-size:13px; color:var(--sub); margin-top:2px}
+  canvas.chart{width:100%; display:block}
+  .modal{position:fixed; inset:0; background:rgba(15,20,35,.5); display:none; align-items:center; justify-content:center; z-index:50; padding:16px}
+  .modal.on{display:flex}
+  .modal .box{background:#fff; border-radius:16px; max-width:640px; width:100%; max-height:88vh; overflow:auto; padding:22px}
+  .modal h3{margin:0 0 4px}
+  .kv{margin:10px 0; font-size:15px}
+  .kv b{display:block; color:var(--sub); font-size:13px; font-weight:600; margin-bottom:2px}
+  .sig-view{border:1px solid var(--line); border-radius:10px; max-width:320px; margin-top:4px}
+  .tag-manage{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+  .tag-manage .tg{display:flex; align-items:center; gap:6px; background:var(--chip); border:1px solid var(--line); border-radius:999px; padding:6px 6px 6px 12px; font-size:14px; font-weight:600}
+  .tag-manage .tg button{border:0; background:#dfe4ee; width:22px; height:22px; border-radius:50%; cursor:pointer; font-weight:800; color:#556}
+  .toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:#1f2733; color:#fff; padding:12px 20px; border-radius:999px; font-size:14px; font-weight:600; z-index:99; opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; max-width:90vw; text-align:center}
+  .toast.on{opacity:1; transform:translateX(-50%) translateY(-4px)}
+  .req{color:var(--danger)}
+  .drive-status{display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; margin:10px 0; padding:10px 12px; border-radius:10px; background:#f6f8fc; border:1px solid var(--line)}
+  .dot{width:10px; height:10px; border-radius:50%; background:#adb5bd; flex:none}
+  .dot.on{background:var(--ok)}
+  details.guide{margin-top:12px; border:1px solid var(--line); border-radius:10px; padding:4px 12px; background:#fbfcfe}
+  details.guide summary{cursor:pointer; font-weight:700; padding:8px 0; font-size:14px; color:var(--brand-d)}
+  details.guide ol{margin:6px 0 12px; padding-left:20px; font-size:14px; line-height:1.7; color:var(--ink)}
+  details.guide code{background:#eef1f8; padding:1px 6px; border-radius:5px; font-size:13px; word-break:break-all}
+  .note{font-size:13px; color:var(--warn); background:#fff4e6; border:1px solid #ffd8a8; border-radius:10px; padding:10px 12px; margin-top:8px}
+  @media print{
+    body{background:#fff}
+    header.appbar,nav.tabs,.no-print{display:none !important}
+    main{padding:0; max-width:none}
+    #printArea{display:block !important}
+    .view{display:none !important}
+  }
+  #printArea{display:none}
+  .sheet{padding:24px; color:#000; font-size:15px}
+  .sheet h2{text-align:center; font-size:22px; margin:0 0 4px; letter-spacing:2px}
+  .sheet .sub{text-align:center; color:#555; font-size:13px; margin-bottom:18px}
+  table.sheet-t{width:100%; border-collapse:collapse; margin-top:6px}
+  table.sheet-t th,table.sheet-t td{border:1px solid #333; padding:10px 12px; vertical-align:top; font-size:14px}
+  table.sheet-t th{background:#f0f2f7; width:130px; text-align:left; font-weight:700; white-space:nowrap}
+  .sheet .sign-line{margin-top:26px; display:flex; justify-content:flex-end; align-items:flex-end; gap:14px}
+  .sheet .sign-line img{height:70px}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <h1>📋 학생 행동 기록부</h1>
+  <span class="sp"></span>
+  <span class="badge" id="countBadge">기록 0건</span>
+</header>
+
+<nav class="tabs">
+  <button data-view="write" class="active">기록 작성</button>
+  <button data-view="list">기록 목록</button>
+  <button data-view="stats">통계</button>
+  <button data-view="settings">설정·백업</button>
+</nav>
+
+<main>
+  <!-- ============ WRITE ============ -->
+  <section class="view active" id="view-write">
+    <div class="card">
+      <h2>새 기록 작성</h2>
+      <div class="row">
+        <div>
+          <label class="f">학생 이름 <span class="req">*</span></label>
+          <input type="text" id="f_name" placeholder="예) 홍길동" autocomplete="off">
+        </div>
+        <div>
+          <label class="f">학년·반</label>
+          <input type="text" id="f_class" placeholder="예) 3-2" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label class="f">발생 장소</label>
+          <input type="text" id="f_place" placeholder="예) 3학년 2반 교실" autocomplete="off">
+        </div>
+        <div>
+          <label class="f">담당 교사</label>
+          <input type="text" id="f_teacher" placeholder="예) 김선생" autocomplete="off">
+        </div>
+      </div>
+
+      <label class="f">날짜·시간 <span class="req">*</span></label>
+      <input type="datetime-local" id="f_datetime">
+
+      <label class="f">행동 유형 <span class="muted">(복수 선택 가능 · 분석에 사용됩니다)</span></label>
+      <div class="chips" id="typeChips"></div>
+
+      <label class="f">행동 내용 <span class="req">*</span></label>
+      <textarea id="f_behavior" placeholder="어떤 일이 있었는지 구체적으로 적어주세요."></textarea>
+
+      <label class="f">조치·지도 사항</label>
+      <textarea id="f_action" placeholder="교사가 어떤 지도를 했는지 적어주세요."></textarea>
+
+      <label class="f">관련 학생·목격자</label>
+      <input type="text" id="f_witness" placeholder="예) 같은 반 김철수 등 (선택)" autocomplete="off">
+
+      <div class="row">
+        <div>
+          <label class="f">보호자 통지</label>
+          <select id="f_notify">
+            <option value="">선택 안 함 (미통지)</option>
+            <option>전화</option>
+            <option>문자(SMS)</option>
+            <option>가정통신문</option>
+            <option>직접 면담</option>
+            <option>기타</option>
+          </select>
+        </div>
+        <div id="notifyAtWrap" style="display:none">
+          <label class="f">통지 일시</label>
+          <input type="datetime-local" id="f_notifyAt">
+        </div>
+      </div>
+
+      <label class="check"><input type="checkbox" id="f_recur"> 재발(반복) 사안입니다</label>
+
+      <label class="f">비고 <span class="muted">(교사 메모 · 선택)</span></label>
+      <textarea id="f_memo" placeholder="추후 참고할 내용, 후속 계획 등"></textarea>
+
+      <label class="f">학생 반성 내용 <span class="muted">(학생이 직접 작성)</span></label>
+      <textarea id="f_reflect" placeholder="학생이 느낀 점, 앞으로의 다짐 등을 적습니다."></textarea>
+
+      <label class="f">확인 문구</label>
+      <div class="confirm-box" id="confirmText">위 내용을 확인하였으며, 앞으로 바르게 행동하도록 노력하겠습니다.</div>
+
+      <label class="f">학생 서명 <span class="req">*</span></label>
+      <div class="sign-wrap">
+        <canvas class="sign-pad" id="sigPad"></canvas>
+        <div class="sign-hint">
+          <span>위 칸에 손가락 또는 마우스로 서명해 주세요.</span>
+          <button class="btn grey sm" id="sigClear" type="button">지우기</button>
+        </div>
+      </div>
+
+      <button class="btn lg" id="saveBtn" type="button">기록 저장하기</button>
+    </div>
+  </section>
+
+  <!-- ============ LIST ============ -->
+  <section class="view" id="view-list">
+    <div class="card">
+      <h2>기록 목록</h2>
+      <div class="toolbar" style="margin-bottom:12px">
+        <input type="text" id="q_search" placeholder="이름·내용 검색" style="flex:2 1 160px">
+        <select id="q_type" style="flex:1 1 120px"><option value="">전체 유형</option></select>
+        <select id="q_sort" style="flex:1 1 120px">
+          <option value="new">최신순</option>
+          <option value="old">오래된순</option>
+          <option value="name">이름순</option>
+        </select>
+      </div>
+      <div class="toolbar">
+        <input type="text" id="q_class" placeholder="반 필터 (예 3-2)" style="flex:1 1 120px">
+        <input type="date" id="q_from" style="flex:1 1 120px">
+        <span class="muted">~</span>
+        <input type="date" id="q_to" style="flex:1 1 120px">
+        <button class="btn grey sm" id="q_reset" type="button">필터 초기화</button>
+      </div>
+    </div>
+    <div id="recList"></div>
+  </section>
+
+  <!-- ============ STATS ============ -->
+  <section class="view" id="view-stats">
+    <div class="card">
+      <h2>통계 요약</h2>
+      <div class="stat-grid">
+        <div class="stat"><div class="n" id="s_total">0</div><div class="l">전체 기록</div></div>
+        <div class="stat"><div class="n" id="s_students">0</div><div class="l">학생 수</div></div>
+        <div class="stat"><div class="n" id="s_month">0</div><div class="l">이번 달</div></div>
+        <div class="stat"><div class="n" id="s_signed">0</div><div class="l">서명 완료</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>행동 유형별 건수</h2>
+      <canvas class="chart" id="chartType" height="220"></canvas>
+    </div>
+    <div class="card">
+      <h2>학생별 건수 (상위 10명)</h2>
+      <canvas class="chart" id="chartStudent" height="260"></canvas>
+    </div>
+    <div class="card">
+      <h2>월별 추이 (최근 6개월)</h2>
+      <canvas class="chart" id="chartMonth" height="220"></canvas>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section class="view" id="view-settings">
+
+    <div class="card">
+      <h2>☁️ 구글 드라이브 백업</h2>
+      <p class="muted">본인 구글 계정으로 로그인하면 내 기록을 <b>내 구글 드라이브</b>에 백업하고, 다른 기기에서도 불러올 수 있습니다. 각자 자기 계정·자기 드라이브에만 저장되며, 앱은 자신이 만든 백업 파일 하나(<code>학생행동기록_백업.json</code>)에만 접근합니다.</p>
+
+      <div class="drive-status"><span class="dot" id="driveDot"></span><span id="driveStatus">로그인 안 됨</span></div>
+
+      <div class="note" id="driveConfigured" style="display:none; color:var(--brand-d); background:var(--brand-l); border-color:#d4ddff">
+        구글 백업이 준비되어 있습니다. 아래 <b>구글로 로그인</b>만 누르면 바로 사용할 수 있어요.
+      </div>
+
+      <div id="driveCidRow">
+        <label class="f">구글 OAuth 클라이언트 ID</label>
+        <input type="text" id="driveClientId" placeholder="000000-xxxx.apps.googleusercontent.com" autocomplete="off">
+      </div>
+      <div class="note" id="driveLocalNote" style="display:none">
+        지금은 파일을 직접 열어(로컬 파일) 실행 중이라 구글 로그인이 차단됩니다. 아래 “설정 방법”대로 앱을 웹 주소(https)나 <code>http://localhost</code>에 올린 뒤 사용하세요. 그 전까지는 아래 “파일로 백업”을 이용하시면 됩니다.
+      </div>
+
+      <div class="toolbar" style="margin-top:12px">
+        <button class="btn" id="driveLogin" type="button">구글로 로그인</button>
+        <button class="btn ghost" id="driveBackup" type="button" disabled>지금 백업</button>
+        <button class="btn grey" id="driveRestore" type="button" disabled>드라이브에서 불러오기</button>
+        <button class="btn grey sm" id="driveLogout" type="button" disabled>로그아웃</button>
+      </div>
+      <label class="check"><input type="checkbox" id="driveAuto"> 기록을 저장할 때마다 자동으로 드라이브에 백업</label>
+      <div class="muted" id="driveLast" style="margin-top:8px"></div>
+
+      <details class="guide" id="driveGuide">
+        <summary>구글 드라이브 백업 — 최초 1회 설정 방법 (펼치기)</summary>
+        <ol>
+          <li><b>앱을 웹 주소로 준비</b> — 이 파일을 무료 호스팅(예: GitHub Pages)에 올리거나, 컴퓨터에서 <code>http://localhost</code> 로 여세요. (파일을 그냥 더블클릭한 <code>file://</code> 상태에서는 구글 로그인이 안 됩니다.)</li>
+          <li><a href="https://console.cloud.google.com/" target="_blank" rel="noopener">구글 클라우드 콘솔</a>에서 새 프로젝트를 만듭니다.</li>
+          <li><b>API 및 서비스 → 라이브러리</b>에서 <code>Google Drive API</code>를 검색해 <b>사용 설정</b>합니다.</li>
+          <li><b>OAuth 동의 화면</b>을 구성합니다. 사용자 유형 <b>외부</b> 선택, 앱 이름 입력, 그리고 <b>테스트 사용자</b>에 본인 구글 이메일을 추가합니다. 범위(scope)는 별도 추가 없이 진행해도 됩니다.</li>
+          <li><b>사용자 인증 정보 → 사용자 인증 정보 만들기 → OAuth 클라이언트 ID</b>를 선택하고, 애플리케이션 유형은 <b>웹 애플리케이션</b>을 고릅니다.</li>
+          <li><b>승인된 자바스크립트 원본</b>에 이 앱의 주소를 그대로 추가합니다. 예: <code>https://내계정.github.io</code> 또는 <code>http://localhost:8000</code> (경로 없이 도메인만).</li>
+          <li>생성된 <b>클라이언트 ID</b>(…apps.googleusercontent.com)를 복사해 위 입력칸에 붙여넣고, <b>구글 로그인</b>을 누릅니다.</li>
+        </ol>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>행동 유형 태그 관리</h2>
+      <p class="muted">분석에 쓰이는 유형 목록입니다. 학교·학급 상황에 맞게 추가·삭제하세요.</p>
+      <div class="toolbar" style="margin-top:8px">
+        <input type="text" id="newTag" placeholder="새 유형 입력 (예: 복장 불량)" style="flex:1 1 160px">
+        <button class="btn sm" id="addTag" type="button">추가</button>
+      </div>
+      <div class="tag-manage" id="tagManage"></div>
+    </div>
+
+    <div class="card">
+      <h2>확인 문구 편집</h2>
+      <textarea id="confirmEdit"></textarea>
+      <button class="btn sm ghost" id="saveConfirm" type="button" style="margin-top:10px">확인 문구 저장</button>
+    </div>
+
+    <div class="card">
+      <h2>파일로 내보내기 · 백업</h2>
+      <p class="muted">기록은 기본적으로 이 브라우저(기기)에 저장됩니다. 구글 백업을 쓰지 않을 때도 주기적으로 파일 백업을 내려받아 보관하세요.</p>
+      <div class="toolbar" style="margin-top:10px">
+        <button class="btn" id="expCsv" type="button">엑셀(CSV) 내보내기</button>
+        <button class="btn ghost" id="expJson" type="button">백업 파일(JSON) 저장</button>
+        <button class="btn grey" id="impJson" type="button">백업 불러오기</button>
+        <input type="file" id="impFile" accept="application/json" style="display:none">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="color:var(--danger)">전체 삭제</h2>
+      <p class="muted">모든 기록을 삭제합니다. 되돌릴 수 없으니 먼저 백업을 권장합니다.</p>
+      <button class="btn danger" id="clearAll" type="button" style="margin-top:8px">전체 기록 삭제</button>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="detailModal"><div class="box" id="detailBox"></div></div>
+<div id="printArea"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+(function(){
+  const LS_REC="sbl_records_v1", LS_TAGS="sbl_tags_v1", LS_CONFIRM="sbl_confirm_v1",
+        LS_TEACHER="sbl_teacher_v1", LS_CID="sbl_gdrive_cid", LS_AUTO="sbl_gdrive_auto", LS_LAST="sbl_gdrive_last";
+  const DEFAULT_TAGS=["지각","결석","수업 방해","언어 사용","다툼·폭력","과제 미제출","휴대폰 사용","기타"];
+  const DEFAULT_CONFIRM="위 내용을 확인하였으며, 앞으로 바르게 행동하도록 노력하겠습니다.";
+  const PALETTE=["#3b5bdb","#7048e8","#1098ad","#e8590c","#2b8a3e","#e64980","#f08c00","#495057","#0c8599","#ae3ec9"];
+  // ▼▼▼ 배포용 설정 ▼▼▼  아래 따옴표 안에 구글 OAuth '클라이언트 ID'를 넣으면,
+  //     다른 사용자는 아무 설정 없이 '구글로 로그인'만 누르면 됩니다. (비워두면 설정칸이 나타남)
+  const EMBEDDED_CLIENT_ID="";
+  // ▲▲▲ 배포용 설정 ▲▲▲
+  const DRIVE_SCOPE="openid email profile https://www.googleapis.com/auth/drive.file";
+  const BACKUP_NAME="학생행동기록_백업.json";
+
+  const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+  const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)); return v==null?d:v;}catch(e){return d;}};
+  const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){toast("저장 공간이 부족합니다.");}};
+  const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  let seq=0; const uid=()=> Date.now().toString(36)+(seq++).toString(36)+Math.floor(Math.random()*1e6).toString(36);
+
+  let records=load(LS_REC,[]);
+  let tags=load(LS_TAGS,DEFAULT_TAGS.slice());
+  let confirmText=load(LS_CONFIRM,DEFAULT_CONFIRM);
+  let selectedTypes=new Set();
+
+  function toast(msg){const t=$("#toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("on"),2400);}
+
+  function nowLocalInput(){const d=new Date(); const p=n=>String(n).padStart(2,"0");
+    return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+"T"+p(d.getHours())+":"+p(d.getMinutes());}
+  function fmtDate(iso){if(!iso) return ""; const d=new Date(iso); if(isNaN(d)) return iso;
+    const p=n=>String(n).padStart(2,"0"); const w=["일","월","화","수","목","금","토"][d.getDay()];
+    return d.getFullYear()+"."+p(d.getMonth()+1)+"."+p(d.getDate())+"("+w+") "+p(d.getHours())+":"+p(d.getMinutes());}
+  function ymKey(iso){const d=new Date(iso); if(isNaN(d))return""; return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
+
+  /* ---------- tabs ---------- */
+  $$("nav.tabs button").forEach(b=>b.addEventListener("click",()=>{
+    $$("nav.tabs button").forEach(x=>x.classList.remove("active")); b.classList.add("active");
+    $$(".view").forEach(v=>v.classList.remove("active"));
+    $("#view-"+b.dataset.view).classList.add("active");
+    if(b.dataset.view==="list") renderList();
+    if(b.dataset.view==="stats") renderStats();
+    if(b.dataset.view==="settings") renderTags();
+    window.scrollTo(0,0);
+  }));
+
+  /* ---------- type chips ---------- */
+  function renderTypeChips(){
+    const c=$("#typeChips"); c.innerHTML="";
+    tags.forEach(t=>{
+      const el=document.createElement("div");
+      el.className="chip"+(selectedTypes.has(t)?" on":""); el.textContent=t;
+      el.addEventListener("click",()=>{ selectedTypes.has(t)?selectedTypes.delete(t):selectedTypes.add(t); el.classList.toggle("on"); });
+      c.appendChild(el);
+    });
+  }
+
+  /* ---------- notify method toggle ---------- */
+  $("#f_notify").addEventListener("change",()=>{
+    const on=!!$("#f_notify").value; $("#notifyAtWrap").style.display=on?"":"none";
+    if(on && !$("#f_notifyAt").value) $("#f_notifyAt").value=nowLocalInput();
+  });
+
+  /* ---------- signature pad ---------- */
+  const pad=$("#sigPad"); const pctx=pad.getContext("2d"); let drawing=false, hasInk=false, last=null;
+  function fitPad(){
+    const rect=pad.getBoundingClientRect(); const dpr=window.devicePixelRatio||1;
+    const prev=hasInk?pad.toDataURL():null;
+    pad.width=Math.round(rect.width*dpr); pad.height=Math.round(rect.height*dpr);
+    pctx.setTransform(dpr,0,0,dpr,0,0);
+    pctx.lineWidth=2.4; pctx.lineCap="round"; pctx.lineJoin="round"; pctx.strokeStyle="#12203a";
+    if(prev){const img=new Image(); img.onload=()=>pctx.drawImage(img,0,0,rect.width,rect.height); img.src=prev;}
+  }
+  function posOf(e){const rect=pad.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-rect.left, y:t.clientY-rect.top};}
+  function start(e){e.preventDefault(); drawing=true; last=posOf(e);}
+  function move(e){if(!drawing) return; e.preventDefault(); const p=posOf(e);
+    pctx.beginPath(); pctx.moveTo(last.x,last.y); pctx.lineTo(p.x,p.y); pctx.stroke(); last=p; hasInk=true;}
+  function end(){drawing=false;}
+  pad.addEventListener("mousedown",start); pad.addEventListener("mousemove",move); window.addEventListener("mouseup",end);
+  pad.addEventListener("touchstart",start,{passive:false}); pad.addEventListener("touchmove",move,{passive:false}); pad.addEventListener("touchend",end);
+  $("#sigClear").addEventListener("click",()=>{const r=pad.getBoundingClientRect(); pctx.clearRect(0,0,r.width,r.height); hasInk=false;});
+
+  /* ---------- save ---------- */
+  function resetForm(){
+    $("#f_name").value=""; $("#f_class").value=""; $("#f_place").value="";
+    $("#f_behavior").value=""; $("#f_action").value=""; $("#f_witness").value="";
+    $("#f_notify").value=""; $("#f_notifyAt").value=""; $("#notifyAtWrap").style.display="none";
+    $("#f_recur").checked=false; $("#f_memo").value=""; $("#f_reflect").value="";
+    $("#f_datetime").value=nowLocalInput();
+    selectedTypes.clear(); renderTypeChips();
+    const r=pad.getBoundingClientRect(); pctx.clearRect(0,0,r.width,r.height); hasInk=false;
+  }
+  $("#saveBtn").addEventListener("click",()=>{
+    const name=$("#f_name").value.trim(), behavior=$("#f_behavior").value.trim();
+    if(!name){toast("학생 이름을 입력하세요."); $("#f_name").focus(); return;}
+    if(!behavior){toast("행동 내용을 입력하세요."); $("#f_behavior").focus(); return;}
+    if(!hasInk){toast("학생 서명을 받아주세요."); return;}
+    const teacher=$("#f_teacher").value.trim(); save(LS_TEACHER,teacher);
+    const rec={
+      id:uid(), name, cls:$("#f_class").value.trim(), place:$("#f_place").value.trim(), teacher,
+      datetime:$("#f_datetime").value||nowLocalInput(), types:Array.from(selectedTypes),
+      behavior, action:$("#f_action").value.trim(), witness:$("#f_witness").value.trim(),
+      notify:$("#f_notify").value, notifyAt:$("#f_notify").value?$("#f_notifyAt").value:"",
+      recur:$("#f_recur").checked, memo:$("#f_memo").value.trim(), reflect:$("#f_reflect").value.trim(),
+      confirm:confirmText, signature:pad.toDataURL("image/png"), created:new Date().toISOString()
+    };
+    records.push(rec); save(LS_REC,records); updateCount();
+    toast("저장되었습니다 ✓"); resetForm();
+    if(driveAuto && driveToken){ driveBackup(true); }
+  });
+
+  /* ---------- list ---------- */
+  function filteredRecords(){
+    const q=$("#q_search").value.trim().toLowerCase(), ty=$("#q_type").value, cls=$("#q_class").value.trim().toLowerCase();
+    const from=$("#q_from").value, to=$("#q_to").value, sort=$("#q_sort").value;
+    let arr=records.filter(r=>{
+      if(q && !((r.name||"").toLowerCase().includes(q) || (r.behavior||"").toLowerCase().includes(q) || (r.reflect||"").toLowerCase().includes(q))) return false;
+      if(ty && !(r.types||[]).includes(ty)) return false;
+      if(cls && !((r.cls||"").toLowerCase().includes(cls))) return false;
+      if(from && r.datetime.slice(0,10) < from) return false;
+      if(to && r.datetime.slice(0,10) > to) return false;
+      return true;
+    });
+    arr.sort((a,b)=> sort==="name"?(a.name||"").localeCompare(b.name||"","ko"):
+      sort==="old"?(a.datetime||"").localeCompare(b.datetime||""):(b.datetime||"").localeCompare(a.datetime||""));
+    return arr;
+  }
+  function renderList(){
+    const wrap=$("#recList"), arr=filteredRecords();
+    if(!records.length){wrap.innerHTML='<div class="empty"><div class="big">📝</div>아직 저장된 기록이 없습니다.<br>‘기록 작성’ 탭에서 첫 기록을 남겨보세요.</div>'; return;}
+    if(!arr.length){wrap.innerHTML='<div class="empty"><div class="big">🔍</div>조건에 맞는 기록이 없습니다.</div>'; return;}
+    wrap.innerHTML=arr.map(r=>{
+      const tg=(r.types||[]).map(t=>'<span class="tag">'+esc(t)+'</span>').join("")+(r.recur?'<span class="tag red">재발</span>':"");
+      const meta=[]; if(r.place) meta.push("📍 "+esc(r.place)); if(r.teacher) meta.push("👤 "+esc(r.teacher));
+      if(r.notify) meta.push("보호자통지: "+esc(r.notify));
+      return '<div class="rec">'+
+        '<div class="top"><span class="name">'+esc(r.name)+'</span>'+
+        (r.cls?'<span class="cls">'+esc(r.cls)+'</span>':'')+
+        '<span class="sp"></span><span class="date">'+esc(fmtDate(r.datetime))+'</span></div>'+
+        (tg?'<div style="margin-top:6px">'+tg+'</div>':'')+
+        '<div class="body"><b>행동:</b> '+esc((r.behavior||"").slice(0,120))+((r.behavior||"").length>120?"…":"")+'</div>'+
+        (meta.length?'<div class="meta2">'+meta.join("  ·  ")+'</div>':'')+
+        '<div class="acts">'+
+          '<span class="'+(r.signature?"signed":"unsigned")+'">'+(r.signature?"✓ 서명 완료":"서명 없음")+'</span>'+
+          '<span class="sp"></span>'+
+          '<button class="btn grey sm" data-act="view" data-id="'+r.id+'">상세</button>'+
+          '<button class="btn ghost sm" data-act="print" data-id="'+r.id+'">PDF 출력</button>'+
+          '<button class="btn danger sm" data-act="del" data-id="'+r.id+'">삭제</button>'+
+        '</div></div>';
+    }).join("");
+    wrap.querySelectorAll("button[data-act]").forEach(b=>b.addEventListener("click",()=>{
+      const r=records.find(x=>x.id===b.dataset.id); if(!r) return;
+      if(b.dataset.act==="view") showDetail(r);
+      if(b.dataset.act==="print") printRecord(r);
+      if(b.dataset.act==="del") delRecord(r);
+    }));
+  }
+  ["q_search","q_type","q_class","q_from","q_to","q_sort"].forEach(id=>{
+    $("#"+id).addEventListener("input",renderList); $("#"+id).addEventListener("change",renderList);});
+  $("#q_reset").addEventListener("click",()=>{["q_search","q_type","q_class","q_from","q_to"].forEach(id=>$("#"+id).value=""); $("#q_sort").value="new"; renderList();});
+
+  function delRecord(r){
+    if(!confirm(r.name+" 학생의 기록을 삭제할까요?\n삭제하면 되돌릴 수 없습니다.")) return;
+    records=records.filter(x=>x.id!==r.id); save(LS_REC,records); updateCount(); renderList(); toast("삭제되었습니다.");
+    if(driveAuto && driveToken) driveBackup(true);
+  }
+
+  /* ---------- detail ---------- */
+  function kv(label,val){return '<div class="kv"><b>'+label+'</b>'+val+'</div>';}
+  function showDetail(r){
+    const tg=(r.types||[]).map(t=>'<span class="tag">'+esc(t)+'</span>').join(" ")+(r.recur?' <span class="tag red">재발</span>':"")||'<span class="muted">-</span>';
+    let h='<div class="toolbar" style="margin-bottom:6px"><h3 style="flex:1">'+esc(r.name)+(r.cls?' <span class="muted" style="font-size:14px">('+esc(r.cls)+')</span>':'')+'</h3>'+
+      '<button class="btn grey sm" id="mClose">닫기</button></div>';
+    h+=kv("날짜·시간",esc(fmtDate(r.datetime)));
+    if(r.place) h+=kv("발생 장소",esc(r.place));
+    if(r.teacher) h+=kv("담당 교사",esc(r.teacher));
+    h+=kv("행동 유형",tg);
+    h+=kv("행동 내용",esc(r.behavior||"-").replace(/\n/g,"<br>"));
+    h+=kv("조치·지도 사항",esc(r.action||"-").replace(/\n/g,"<br>"));
+    if(r.witness) h+=kv("관련 학생·목격자",esc(r.witness));
+    if(r.notify) h+=kv("보호자 통지",esc(r.notify)+(r.notifyAt?" ("+esc(fmtDate(r.notifyAt))+")":""));
+    if(r.memo) h+=kv("비고",esc(r.memo).replace(/\n/g,"<br>"));
+    h+=kv("학생 반성 내용",esc(r.reflect||"-").replace(/\n/g,"<br>"));
+    h+=kv("확인 문구",esc(r.confirm||""));
+    h+=kv("학생 서명",r.signature?'<img class="sig-view" src="'+r.signature+'">':'<span class="muted">서명 없음</span>');
+    h+='<div class="toolbar" style="margin-top:14px"><button class="btn ghost sm" id="mPrint">PDF 출력</button><button class="btn danger sm" id="mDel">삭제</button></div>';
+    $("#detailBox").innerHTML=h; $("#detailModal").classList.add("on");
+    $("#mClose").onclick=closeModal; $("#mPrint").onclick=()=>{closeModal(); printRecord(r);}; $("#mDel").onclick=()=>{closeModal(); delRecord(r);};
+  }
+  function closeModal(){$("#detailModal").classList.remove("on");}
+  $("#detailModal").addEventListener("click",e=>{if(e.target.id==="detailModal") closeModal();});
+
+  /* ---------- print ---------- */
+  function printRecord(r){
+    const rows=[["학생","<b>"+esc(r.name)+"</b>"+(r.cls?"  ("+esc(r.cls)+")":"")],["날짜·시간",esc(fmtDate(r.datetime))]];
+    if(r.place) rows.push(["발생 장소",esc(r.place)]);
+    if(r.teacher) rows.push(["담당 교사",esc(r.teacher)]);
+    rows.push(["행동 유형",esc((r.types||[]).join(", ")||"-")+(r.recur?"  (재발 사안)":"")]);
+    rows.push(["행동 내용",esc(r.behavior||"-").replace(/\n/g,"<br>")]);
+    rows.push(["조치·지도 사항",esc(r.action||"-").replace(/\n/g,"<br>")]);
+    if(r.witness) rows.push(["관련 학생·목격자",esc(r.witness)]);
+    if(r.notify) rows.push(["보호자 통지",esc(r.notify)+(r.notifyAt?" ("+esc(fmtDate(r.notifyAt))+")":"")]);
+    if(r.memo) rows.push(["비고",esc(r.memo).replace(/\n/g,"<br>")]);
+    rows.push(["학생 반성 내용",esc(r.reflect||"-").replace(/\n/g,"<br>")]);
+    const tr=rows.map(x=>'<tr><th>'+x[0]+'</th><td>'+x[1]+'</td></tr>').join("");
+    $("#printArea").innerHTML='<div class="sheet"><h2>학 생 행 동 기 록</h2><div class="sub">Student Behavior Record</div>'+
+      '<table class="sheet-t">'+tr+'</table>'+
+      '<div style="margin-top:18px; font-size:14px">'+esc(r.confirm||"")+'</div>'+
+      '<div class="sign-line"><span>학생 서명 :</span>'+(r.signature?'<img src="'+r.signature+'">':'<span style="border-bottom:1px solid #000; width:160px">&nbsp;</span>')+'</div></div>';
+    window.print();
+  }
+
+  /* ---------- stats ---------- */
+  function renderStats(){
+    $("#s_total").textContent=records.length;
+    $("#s_students").textContent=new Set(records.map(r=>r.name+"|"+(r.cls||""))).size;
+    const nowYm=ymKey(new Date().toISOString());
+    $("#s_month").textContent=records.filter(r=>ymKey(r.datetime)===nowYm).length;
+    $("#s_signed").textContent=records.filter(r=>!!r.signature).length;
+    const typeCount={}; records.forEach(r=>{(r.types&&r.types.length?r.types:["(미분류)"]).forEach(t=>typeCount[t]=(typeCount[t]||0)+1);});
+    barChart($("#chartType"), Object.entries(typeCount).sort((a,b)=>b[1]-a[1]));
+    const stuCount={}; records.forEach(r=>{const k=r.name+(r.cls?" ("+r.cls+")":""); stuCount[k]=(stuCount[k]||0)+1;});
+    barChart($("#chartStudent"), Object.entries(stuCount).sort((a,b)=>b[1]-a[1]).slice(0,10));
+    const months=[]; const base=new Date();
+    for(let i=5;i>=0;i--){const d=new Date(base.getFullYear(),base.getMonth()-i,1); months.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"));}
+    barChart($("#chartMonth"), months.map(m=>[m.slice(5)+"월", records.filter(r=>ymKey(r.datetime)===m).length]), true);
+  }
+  function barChart(canvas, data, keepOrder){
+    const dpr=window.devicePixelRatio||1, cssW=canvas.clientWidth||canvas.parentElement.clientWidth-36, rows=data.length;
+    const cssH= keepOrder ? 200 : Math.max(120, rows*36+30);
+    canvas.style.height=cssH+"px"; canvas.width=Math.round(cssW*dpr); canvas.height=Math.round(cssH*dpr);
+    const ctx=canvas.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,cssW,cssH);
+    if(!data.length){ctx.fillStyle="#8a94a6"; ctx.font="14px sans-serif"; ctx.fillText("데이터가 없습니다.",10,28); return;}
+    const max=Math.max(1,...data.map(d=>d[1]));
+    if(keepOrder){
+      const pad=30, bw=(cssW-pad*2)/data.length, gap=bw*0.28, baseY=cssH-24;
+      data.forEach((d,i)=>{const h=(d[1]/max)*(baseY-14), x=pad+i*bw+gap/2, w=bw-gap, y=baseY-h;
+        ctx.fillStyle=PALETTE[i%PALETTE.length]; roundRect(ctx,x,y,w,h,5); ctx.fill();
+        ctx.fillStyle="#5b6675"; ctx.font="12px sans-serif"; ctx.textAlign="center"; ctx.fillText(d[0], x+w/2, cssH-8);
+        ctx.fillStyle="#1f2733"; ctx.font="bold 12px sans-serif"; if(d[1]>0) ctx.fillText(d[1], x+w/2, y-4);});
+      ctx.textAlign="left";
+    }else{
+      const labelW=Math.min(150, Math.max(70, cssW*0.32)), bh=Math.min(26,(cssH-20)/data.length-8), gap=((cssH-20)/data.length)-bh;
+      data.forEach((d,i)=>{const y=10+i*(bh+gap), bw=(cssW-labelW-40)*(d[1]/max);
+        ctx.fillStyle="#5b6675"; ctx.font="13px sans-serif"; ctx.textAlign="right"; ctx.fillText(clip(d[0],10), labelW-6, y+bh/2+4);
+        ctx.fillStyle=PALETTE[i%PALETTE.length]; roundRect(ctx,labelW,y,Math.max(2,bw),bh,5); ctx.fill();
+        ctx.fillStyle="#1f2733"; ctx.font="bold 13px sans-serif"; ctx.textAlign="left"; ctx.fillText(d[1], labelW+Math.max(2,bw)+6, y+bh/2+5);});
+      ctx.textAlign="left";
+    }
+  }
+  function clip(s,n){s=String(s); return s.length>n?s.slice(0,n-1)+"…":s;}
+  function roundRect(ctx,x,y,w,h,r){r=Math.min(r,h/2,w/2); ctx.beginPath(); ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();}
+
+  /* ---------- settings: tags ---------- */
+  function renderTags(){
+    $("#confirmEdit").value=confirmText;
+    const box=$("#tagManage"); box.innerHTML="";
+    tags.forEach((t,i)=>{const el=document.createElement("div"); el.className="tg";
+      el.innerHTML='<span>'+esc(t)+'</span><button title="삭제">×</button>';
+      el.querySelector("button").onclick=()=>{tags.splice(i,1); save(LS_TAGS,tags); renderTags(); renderTypeChips(); fillTypeFilter();};
+      box.appendChild(el);});
+  }
+  $("#addTag").addEventListener("click",()=>{const v=$("#newTag").value.trim(); if(!v) return;
+    if(tags.includes(v)){toast("이미 있는 유형입니다."); return;}
+    tags.push(v); save(LS_TAGS,tags); $("#newTag").value=""; renderTags(); renderTypeChips(); fillTypeFilter();});
+  $("#newTag").addEventListener("keydown",e=>{if(e.key==="Enter") $("#addTag").click();});
+  $("#saveConfirm").addEventListener("click",()=>{confirmText=$("#confirmEdit").value.trim()||DEFAULT_CONFIRM; save(LS_CONFIRM,confirmText);
+    $("#confirmText").textContent=confirmText; toast("확인 문구가 저장되었습니다.");});
+  function fillTypeFilter(){const sel=$("#q_type"), cur=sel.value;
+    sel.innerHTML='<option value="">전체 유형</option>'+tags.map(t=>'<option>'+esc(t)+'</option>').join(""); sel.value=cur;}
+
+  /* ---------- export / import ---------- */
+  function download(name,text,type){const blob=new Blob([text],{type:type||"text/plain;charset=utf-8"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name;
+    document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},100);}
+  function today(){const d=new Date(), p=n=>String(n).padStart(2,"0"); return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate());}
+  function csvText(){
+    const cols=["날짜시간","이름","반","발생장소","담당교사","행동유형","행동내용","조치지도","관련학생목격자","보호자통지","통지일시","재발여부","비고","학생반성","확인문구","서명여부"];
+    const q=s=>'"'+String(s==null?"":s).replace(/"/g,'""')+'"';
+    const lines=[cols.map(q).join(",")];
+    records.slice().sort((a,b)=>(a.datetime||"").localeCompare(b.datetime||"")).forEach(r=>{
+      lines.push([fmtDate(r.datetime),r.name,r.cls,r.place,r.teacher,(r.types||[]).join(" / "),r.behavior,r.action,r.witness,
+        r.notify,r.notifyAt?fmtDate(r.notifyAt):"",r.recur?"재발":"",r.memo,r.reflect,r.confirm,r.signature?"서명있음":"없음"].map(q).join(","));});
+    return "﻿"+lines.join("\r\n");
+  }
+  $("#expCsv").addEventListener("click",()=>{if(!records.length){toast("내보낼 기록이 없습니다."); return;}
+    download("학생행동기록_"+today()+".csv",csvText(),"text/csv;charset=utf-8"); toast("CSV 파일을 저장했습니다.");});
+  function backupObject(){return {version:1, exported:new Date().toISOString(), tags, confirmText, records};}
+  $("#expJson").addEventListener("click",()=>{download("학생행동기록_백업_"+today()+".json",JSON.stringify(backupObject(),null,2),"application/json"); toast("백업 파일을 저장했습니다.");});
+  $("#impJson").addEventListener("click",()=>$("#impFile").click());
+  $("#impFile").addEventListener("change",e=>{const file=e.target.files[0]; if(!file) return;
+    const rd=new FileReader(); rd.onload=()=>{ applyImport(rd.result,true); $("#impFile").value=""; }; rd.readAsText(file);});
+  function applyImport(text,ask){
+    try{
+      const data=JSON.parse(text); const incoming=Array.isArray(data)?data:(data.records||[]);
+      if(!Array.isArray(incoming)) throw 0;
+      let mode="replace";
+      if(records.length){ mode= (!ask || confirm("현재 기록에 이어붙일까요?\n\n[확인] 기존 + 불러온 기록 합치기\n[취소] 기존 기록을 불러온 내용으로 교체")) ? "merge":"replace"; }
+      if(mode==="replace"){ records=incoming.slice(); }
+      else{ const ids=new Set(records.map(r=>r.id)); incoming.forEach(r=>{ if(!r.id||!ids.has(r.id)){ r.id=r.id||uid(); records.push(r);} }); }
+      if(data.tags&&Array.isArray(data.tags)){ data.tags.forEach(t=>{if(!tags.includes(t))tags.push(t);}); save(LS_TAGS,tags); }
+      if(data.confirmText){ confirmText=data.confirmText; save(LS_CONFIRM,confirmText); $("#confirmText").textContent=confirmText; }
+      save(LS_REC,records); updateCount(); renderTags(); renderTypeChips(); fillTypeFilter();
+      toast("불러오기 완료 · 총 "+records.length+"건"); return true;
+    }catch(err){ toast("파일을 읽을 수 없습니다. 올바른 백업 파일인지 확인하세요."); return false; }
+  }
+  $("#clearAll").addEventListener("click",()=>{if(!records.length){toast("삭제할 기록이 없습니다."); return;}
+    if(!confirm("정말 모든 기록("+records.length+"건)을 삭제할까요?\n되돌릴 수 없습니다. 먼저 백업을 권장합니다.")) return;
+    if(!confirm("마지막 확인입니다. 전체 삭제를 진행할까요?")) return;
+    records=[]; save(LS_REC,records); updateCount(); renderList(); toast("전체 기록을 삭제했습니다.");});
+
+  /* ========== GOOGLE DRIVE ========== */
+  let driveClientId=EMBEDDED_CLIENT_ID||load(LS_CID,""), driveAuto=load(LS_AUTO,false),
+      driveToken=null, driveTokenExp=0, tokenClient=null, driveFileId=null, driveEmail=null;
+  const isLocalFile = (location.protocol==="file:");
+  const cidConfigured = !!EMBEDDED_CLIENT_ID;
+
+  function setDriveUI(){
+    const on=!!driveToken;
+    $("#driveDot").classList.toggle("on",on);
+    $("#driveStatus").textContent = on ? ((driveEmail?driveEmail+" · ":"")+"로그인됨 · 백업 사용 가능") : "로그인 안 됨";
+    $("#driveBackup").disabled=!on; $("#driveRestore").disabled=!on; $("#driveLogout").disabled=!on;
+    if(!cidConfigured) $("#driveClientId").value= EMBEDDED_CLIENT_ID||load(LS_CID,"");
+    $("#driveAuto").checked=driveAuto;
+    $("#driveCidRow").style.display = cidConfigured ? "none" : "";
+    $("#driveGuide").style.display = cidConfigured ? "none" : "";
+    $("#driveConfigured").style.display = (cidConfigured && !on) ? "" : "none";
+    $("#driveLocalNote").style.display = isLocalFile ? "" : "none";
+    const last=load(LS_LAST,""); $("#driveLast").textContent = last ? ("마지막 드라이브 백업: "+fmtDate(last)) : "";
+  }
+  $("#driveClientId").addEventListener("change",()=>{driveClientId=$("#driveClientId").value.trim(); save(LS_CID,driveClientId);});
+  $("#driveAuto").addEventListener("change",()=>{driveAuto=$("#driveAuto").checked; save(LS_AUTO,driveAuto);
+    if(driveAuto && !driveToken) toast("자동 백업을 켰습니다. 먼저 ‘구글 로그인’을 해주세요.");});
+
+  function gisReady(){ return window.google && google.accounts && google.accounts.oauth2; }
+  function ensureToken(interactive){
+    return new Promise((resolve,reject)=>{
+      driveClientId = EMBEDDED_CLIENT_ID || $("#driveClientId").value.trim();
+      if(!EMBEDDED_CLIENT_ID) save(LS_CID,driveClientId);
+      if(!driveClientId){ reject("NO_CID"); return; }
+      if(!gisReady()){ reject("NO_GIS"); return; }
+      if(driveToken && Date.now()<driveTokenExp-60000){ resolve(driveToken); return; }
+      try{
+        tokenClient=google.accounts.oauth2.initTokenClient({
+          client_id:driveClientId, scope:DRIVE_SCOPE,
+          callback:resp=>{ if(resp&&resp.error){ reject(resp.error); return; }
+            driveToken=resp.access_token; driveTokenExp=Date.now()+((resp.expires_in||3000)*1000);
+            fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:"Bearer "+driveToken}})
+              .then(r=>r.ok?r.json():null).then(u=>{ if(u) driveEmail=u.email||u.name||null; setDriveUI(); }).catch(()=>{});
+            setDriveUI(); resolve(driveToken); }
+        });
+        tokenClient.requestAccessToken({prompt: interactive?"consent":""});
+      }catch(e){ reject(e); }
+    });
+  }
+  function driveErr(e){
+    if(e==="NO_CID") toast("먼저 구글 OAuth 클라이언트 ID를 입력하세요. (설정 방법 참고)");
+    else if(e==="NO_GIS") toast(isLocalFile?"로컬 파일에서는 구글 로그인이 차단됩니다. 웹 주소로 열어주세요.":"구글 로그인 모듈을 불러오지 못했습니다. 인터넷 연결을 확인하세요.");
+    else if(e==="popup_closed"||e==="access_denied") toast("로그인이 취소되었습니다.");
+    else toast("구글 오류: "+(e&&e.message?e.message:e));
+  }
+  $("#driveLogin").addEventListener("click",()=>{
+    ensureToken(true).then(()=>{ toast("구글 로그인 완료 ✓"); return findBackupFile(); }).catch(driveErr);
+  });
+  $("#driveLogout").addEventListener("click",()=>{
+    if(driveToken && gisReady()) try{ google.accounts.oauth2.revoke(driveToken,()=>{}); }catch(e){}
+    driveToken=null; driveTokenExp=0; driveFileId=null; driveEmail=null; setDriveUI(); toast("로그아웃되었습니다.");
+  });
+
+  function findBackupFile(){
+    const q=encodeURIComponent("name='"+BACKUP_NAME+"' and trashed=false");
+    return fetch("https://www.googleapis.com/drive/v3/files?spaces=drive&q="+q+"&fields=files(id,name,modifiedTime)",
+      {headers:{Authorization:"Bearer "+driveToken}}).then(r=>r.json()).then(d=>{
+        if(d.files&&d.files.length){ driveFileId=d.files[0].id; } return driveFileId; });
+  }
+  function driveBackup(silent){
+    ensureToken(false).then(()=>findBackupFile()).then(()=>{
+      const meta={name:BACKUP_NAME, mimeType:"application/json"};
+      const body=JSON.stringify(backupObject());
+      const boundary="sbl_boundary_"+Math.random().toString(36).slice(2);
+      const multipart="--"+boundary+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+
+        JSON.stringify(meta)+"\r\n--"+boundary+"\r\nContent-Type: application/json\r\n\r\n"+body+"\r\n--"+boundary+"--";
+      const url = driveFileId
+        ? "https://www.googleapis.com/upload/drive/v3/files/"+driveFileId+"?uploadType=multipart"
+        : "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+      return fetch(url,{method:driveFileId?"PATCH":"POST",
+        headers:{Authorization:"Bearer "+driveToken,"Content-Type":"multipart/related; boundary="+boundary}, body:multipart})
+        .then(r=>{ if(!r.ok) return r.text().then(t=>{throw t;}); return r.json(); })
+        .then(f=>{ if(f&&f.id) driveFileId=f.id; save(LS_LAST,new Date().toISOString()); setDriveUI();
+          if(!silent) toast("드라이브에 백업했습니다 ✓"); });
+    }).catch(e=>{ if(!silent) driveErr(e); else console.warn("auto backup failed",e); });
+  }
+  $("#driveBackup").addEventListener("click",()=>driveBackup(false));
+  $("#driveRestore").addEventListener("click",()=>{
+    ensureToken(false).then(()=>findBackupFile()).then(id=>{
+      if(!id){ toast("드라이브에 백업 파일이 없습니다."); return; }
+      return fetch("https://www.googleapis.com/drive/v3/files/"+id+"?alt=media",{headers:{Authorization:"Bearer "+driveToken}})
+        .then(r=>r.text()).then(txt=>{ if(applyImport(txt,true)) toast("드라이브에서 불러왔습니다 ✓"); });
+    }).catch(driveErr);
+  });
+
+  /* ---------- init ---------- */
+  function updateCount(){$("#countBadge").textContent="기록 "+records.length+"건";}
+  function init(){
+    $("#f_datetime").value=nowLocalInput();
+    $("#f_teacher").value=load(LS_TEACHER,"");
+    $("#confirmText").textContent=confirmText;
+    renderTypeChips(); fillTypeFilter(); updateCount(); setDriveUI(); fitPad();
+  }
+  window.addEventListener("resize",()=>{fitPad(); if($("#view-stats").classList.contains("active")) renderStats();});
+  window.addEventListener("load",fitPad);
+  init();
+})();
+</script>
+</body>
+</html>
