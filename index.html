@@ -159,6 +159,20 @@
   table.sheet-t th{background:#f0f2f7; width:130px; text-align:left; font-weight:700; white-space:nowrap}
   .sheet .sign-line{margin-top:26px; display:flex; justify-content:flex-end; align-items:flex-end; gap:14px}
   .sheet .sign-line img{height:70px}
+  /* bulk print book */
+  @page{ size:A4; margin:12mm; }
+  .pbook{ color:#000; }
+  .psheet{ break-after:page; page-break-after:always; }
+  .psheet:last-child{ break-after:auto; page-break-after:auto; }
+  .psheet.n2{ display:grid; grid-template-rows:1fr 1fr; gap:8mm; height:262mm; }
+  .psheet.n4{ display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:6mm; height:262mm; }
+  .psheet.n1 .pcard{ min-height:262mm; }
+  .pcard{ border:1px solid #444; border-radius:6px; padding:10px 12px; overflow:hidden; break-inside:avoid; page-break-inside:avoid; display:flex; flex-direction:column; }
+  .pcard h4{ margin:0 0 6px; font-size:15px; display:flex; justify-content:space-between; align-items:center; gap:8px; border-bottom:1px solid #999; padding-bottom:5px; }
+  .pcard table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .pcard th{ text-align:left; width:74px; vertical-align:top; color:#555; font-weight:600; padding:2px 6px 2px 0; white-space:nowrap; }
+  .pcard td{ vertical-align:top; padding:2px 0; }
+  .pcard .sig{ margin-top:auto; padding-top:8px; display:flex; justify-content:flex-end; align-items:flex-end; gap:10px; }
 </style>
 </head>
 <body>
@@ -319,6 +333,10 @@
         <span class="muted">~</span>
         <input type="date" id="q_to" style="flex:1 1 120px">
         <button class="btn grey sm" id="q_reset" type="button">필터 초기화</button>
+      </div>
+      <div class="toolbar" style="margin-top:10px; border-top:1px solid var(--line); padding-top:10px">
+        <button class="btn sm" id="bulkPrint" type="button">📄 모아 출력 (PDF)</button>
+        <span class="muted" id="listCount"></span>
       </div>
     </div>
     <div id="recList"></div>
@@ -483,6 +501,7 @@
 </main>
 
 <div class="modal" id="detailModal"><div class="box" id="detailBox"></div></div>
+<div class="modal" id="printModal"><div class="box" id="printBox"></div></div>
 <div id="printArea"></div>
 <div class="toast" id="toast"></div>
 
@@ -653,6 +672,7 @@
   }
   function renderList(){
     const wrap=$("#recList"), arr=filteredRecords();
+    $("#listCount").textContent="현재 목록 "+arr.length+"건";
     if(!records.length){wrap.innerHTML='<div class="empty"><div class="big">📝</div>아직 저장된 기록이 없습니다.<br>‘기록 작성’ 탭에서 첫 기록을 남겨보세요.</div>'; return;}
     if(!arr.length){wrap.innerHTML='<div class="empty"><div class="big">🔍</div>조건에 맞는 기록이 없습니다.</div>'; return;}
     wrap.innerHTML=arr.map(r=>{
@@ -744,6 +764,61 @@
       '<table class="sheet-t">'+tr+'</table>'+footer+'</div>';
     window.print();
   }
+
+  /* ---------- bulk print (여러 건 모아 PDF) ---------- */
+  function pcard(r, per){
+    const lim = per===1?100000 : (per===2?320:150);
+    const tt = s=>{ s=String(s==null?"":s); s=s.length>lim?s.slice(0,lim)+"…":s; return esc(s).replace(/\n/g,"<br>"); };
+    const isT = r.kind==="teacher", sigH = per===1?60:40;
+    const rows=[["날짜", esc(fmtDate(r.datetime))]];
+    if(r.place) rows.push(["장소", esc(r.place)]);
+    if(r.teacher) rows.push(["담당교사", esc(r.teacher)]);
+    rows.push(["유형", (esc((r.types||[]).join(", "))||"-")+(r.recur?" <b>(재발)</b>":"")]);
+    rows.push(["행동내용", tt(r.behavior)]);
+    if(r.action) rows.push(["조치·지도", tt(r.action)]);
+    if(r.witness && per===1) rows.push(["관련학생", esc(r.witness)]);
+    if(r.notify) rows.push(["보호자통지", esc(r.notify)+(r.notifyAt?" ("+esc(fmtDate(r.notifyAt))+")":"")]);
+    if(isT){ if(r.memo) rows.push(["특이사항", tt(r.memo)]); }
+    else { if(r.reflect) rows.push(["학생반성", tt(r.reflect)]); }
+    const table='<table>'+rows.map(x=>'<tr><th>'+x[0]+'</th><td>'+x[1]+'</td></tr>').join("")+'</table>';
+    const kindTag = isT ? '<span style="font-size:11px;color:#666">교사 기록</span>' : '<span style="font-size:11px;color:#1a7f37">학생 확인</span>';
+    let foot;
+    if(isT) foot='<div class="sig"><span style="font-size:11px;color:#777">※ 교사 개인 기록 · 학생 서명 없음</span></div>';
+    else {
+      const sig = r.signature?'<img src="'+r.signature+'" style="height:'+sigH+'px">':'<span style="display:inline-block;border-bottom:1px solid #000;width:110px">&nbsp;</span>';
+      foot='<div class="sig">'+(per===1?'<span style="font-size:12px;flex:1">'+esc(r.confirm||"")+'</span>':'')+'<span style="font-size:12px">학생 서명: </span>'+sig+'</div>';
+    }
+    return '<div class="pcard"><h4><span>'+esc(r.name)+(r.cls?' <span style="font-size:12px;color:#555">('+esc(r.cls)+')</span>':'')+'</span>'+kindTag+'</h4>'+table+foot+'</div>';
+  }
+  function printBook(recs, per){
+    const cls = per===1?'n1':(per===2?'n2':'n4');
+    let html='<div class="pbook">';
+    for(let i=0;i<recs.length;i+=per){ html+='<div class="psheet '+cls+'">'+recs.slice(i,i+per).map(r=>pcard(r,per)).join("")+'</div>'; }
+    $("#printArea").innerHTML=html+'</div>';
+    window.print();
+  }
+  function openBulkPrint(){
+    const base=filteredRecords(), box=$("#printBox");
+    const cnt=k=>base.filter(r=>kindMatch(r,k)).length;
+    box.innerHTML=
+      '<div class="toolbar" style="margin-bottom:6px"><h3 style="flex:1">📄 모아 출력 (PDF)</h3><button class="btn grey sm" id="pmClose">닫기</button></div>'+
+      '<p class="muted" style="margin-top:0">현재 목록 필터가 적용된 기록을 한 번에 인쇄합니다. 인쇄창에서 “대상: PDF로 저장”을 고르세요.</p>'+
+      '<label class="f">출력할 기록 유형</label>'+
+      '<div class="chips" id="pmKind"><div class="chip on" data-k="">전체 ('+cnt("")+')</div><div class="chip" data-k="student">학생 확인 ('+cnt("student")+')</div><div class="chip" data-k="teacher">교사 기록 ('+cnt("teacher")+')</div></div>'+
+      '<label class="f">페이지당 개수</label>'+
+      '<div class="chips" id="pmPer"><div class="chip on" data-p="1">1개 · 서명 크게</div><div class="chip" data-p="2">2개</div><div class="chip" data-p="4">4개 · 요약</div></div>'+
+      '<button class="btn lg" id="pmGo" type="button" style="margin-top:16px">출력하기</button>';
+    $("#printModal").classList.add("on");
+    let kind="", per=1;
+    box.querySelectorAll('#pmKind .chip').forEach(c=>c.onclick=()=>{ kind=c.dataset.k; box.querySelectorAll('#pmKind .chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); });
+    box.querySelectorAll('#pmPer .chip').forEach(c=>c.onclick=()=>{ per=+c.dataset.p; box.querySelectorAll('#pmPer .chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); });
+    $("#pmClose").onclick=()=>$("#printModal").classList.remove("on");
+    $("#pmGo").onclick=()=>{ const recs=base.filter(r=>kindMatch(r,kind));
+      if(!recs.length){ toast("출력할 기록이 없습니다."); return; }
+      $("#printModal").classList.remove("on"); setTimeout(()=>printBook(recs, per), 120); };
+  }
+  $("#bulkPrint").addEventListener("click",openBulkPrint);
+  $("#printModal").addEventListener("click",e=>{ if(e.target.id==="printModal") $("#printModal").classList.remove("on"); });
 
   /* ---------- stats / analysis ---------- */
   function fillClassFilter(){
