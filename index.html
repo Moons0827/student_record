@@ -103,6 +103,21 @@
   .stat .n{font-size:26px; font-weight:800; color:var(--brand)}
   .stat .l{font-size:13px; color:var(--sub); margin-top:2px}
   canvas.chart{width:100%; display:block}
+  .ins{display:flex; gap:10px; padding:11px 12px; border:1px solid var(--line); border-radius:10px; margin-bottom:8px; background:#fbfcfe; font-size:14.5px; align-items:flex-start}
+  .ins .ic{font-size:18px; line-height:1.25; flex:none}
+  .ins.warn{background:#fff4e6; border-color:#ffd8a8}
+  .ins.good{background:#ebfbee; border-color:#b2f2bb}
+  .wrow{display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 0; border-bottom:1px solid var(--line)}
+  .wrow:last-child{border-bottom:0}
+  .wrow .nm{font-weight:800; color:var(--brand-d); text-decoration:none}
+  .wrow .nm[href]{cursor:pointer}
+  .pill{font-size:12px; font-weight:700; background:var(--chip); color:#495057; padding:3px 9px; border-radius:999px; white-space:nowrap}
+  .pill.red{background:#ffe3e3; color:#c92a2a}
+  .pill.blue{background:var(--brand-l); color:var(--brand-d)}
+  .prof-grid{display:flex; flex-wrap:wrap; gap:10px; margin:12px 0}
+  .prof-grid .pg{flex:1 1 84px; background:#f6f8fc; border:1px solid var(--line); border-radius:10px; padding:10px 6px; text-align:center}
+  .prof-grid .pg .n{font-size:20px; font-weight:800; color:var(--brand)}
+  .prof-grid .pg .l{font-size:12px; color:var(--sub); margin-top:2px}
   .modal{position:fixed; inset:0; background:rgba(15,20,35,.5); display:none; align-items:center; justify-content:center; z-index:50; padding:16px}
   .modal.on{display:flex}
   .modal .box{background:#fff; border-radius:16px; max-width:640px; width:100%; max-height:88vh; overflow:auto; padding:22px}
@@ -153,6 +168,7 @@
   <button data-view="write" class="active">기록 작성</button>
   <button data-view="list">기록 목록</button>
   <button data-view="stats">통계</button>
+  <button data-view="analysis">분석</button>
   <button data-view="settings">설정·백업</button>
 </nav>
 
@@ -161,9 +177,14 @@
   <section class="view active" id="view-write">
     <div class="card">
       <h2>새 기록 작성</h2>
-      <div class="row">
+      <label class="f" style="margin-top:0">기록 유형</label>
+      <div class="chips" id="kindChips">
+        <div class="chip on" data-kind="student">학생 확인 기록 · 서명 받음</div>
+        <div class="chip" data-kind="teacher">교사 개인 기록 · 서명 없음</div>
+      </div>
+      <div class="row" style="margin-top:14px">
         <div>
-          <label class="f">학생 이름 <span class="req">*</span></label>
+          <label class="f" style="margin-top:0">학생 이름 <span class="req">*</span></label>
           <input type="text" id="f_name" placeholder="예) 홍길동" autocomplete="off">
         </div>
         <div>
@@ -218,22 +239,28 @@
 
       <label class="check"><input type="checkbox" id="f_recur"> 재발(반복) 사안입니다</label>
 
-      <label class="f">비고 <span class="muted">(교사 메모 · 선택)</span></label>
-      <textarea id="f_memo" placeholder="추후 참고할 내용, 후속 계획 등"></textarea>
+      <label class="f">특이사항 <span class="muted">(교사 메모 · 선택)</span></label>
+      <textarea id="f_memo" placeholder="교사가 참고할 특이사항, 배경, 후속 계획 등"></textarea>
 
-      <label class="f">학생 반성 내용 <span class="muted">(학생이 직접 작성)</span></label>
-      <textarea id="f_reflect" placeholder="학생이 느낀 점, 앞으로의 다짐 등을 적습니다."></textarea>
+      <div id="studentBlock">
+        <label class="f">학생 반성 내용 <span class="muted">(학생이 직접 작성)</span></label>
+        <textarea id="f_reflect" placeholder="학생이 느낀 점, 앞으로의 다짐 등을 적습니다."></textarea>
 
-      <label class="f">확인 문구</label>
-      <div class="confirm-box" id="confirmText">위 내용을 확인하였으며, 앞으로 바르게 행동하도록 노력하겠습니다.</div>
+        <label class="f">확인 문구</label>
+        <div class="confirm-box" id="confirmText">위 내용을 확인하였으며, 앞으로 바르게 행동하도록 노력하겠습니다.</div>
 
-      <label class="f">학생 서명 <span class="req">*</span></label>
-      <div class="sign-wrap">
-        <canvas class="sign-pad" id="sigPad"></canvas>
-        <div class="sign-hint">
-          <span>위 칸에 손가락 또는 마우스로 서명해 주세요.</span>
-          <button class="btn grey sm" id="sigClear" type="button">지우기</button>
+        <label class="f">학생 서명 <span class="req">*</span></label>
+        <div class="sign-wrap">
+          <canvas class="sign-pad" id="sigPad"></canvas>
+          <div class="sign-hint">
+            <span>위 칸에 손가락 또는 마우스로 서명해 주세요.</span>
+            <button class="btn grey sm" id="sigClear" type="button">지우기</button>
+          </div>
         </div>
+      </div>
+
+      <div id="teacherNote" class="note" style="display:none; color:var(--brand-d); background:var(--brand-l); border-color:#d4ddff">
+        교사 개인 기록입니다. 학생 서명 없이 저장되며, 데이터에는 ‘학생 서명 없음(교사 기록)’으로 표시됩니다.
       </div>
 
       <button class="btn lg" id="saveBtn" type="button">기록 저장하기</button>
@@ -267,13 +294,26 @@
   <!-- ============ STATS ============ -->
   <section class="view" id="view-stats">
     <div class="card">
-      <h2>통계 요약</h2>
+      <h2>분석 · 통계</h2>
+      <div class="toolbar" style="margin-bottom:14px">
+        <select id="a_period" style="flex:1 1 150px">
+          <option value="all">전체 기간</option>
+          <option value="month">이번 달</option>
+          <option value="3m">최근 3개월</option>
+          <option value="6m">최근 6개월</option>
+          <option value="year">올해</option>
+        </select>
+        <select id="a_class" style="flex:1 1 130px"><option value="">전체 반</option></select>
+      </div>
       <div class="stat-grid">
         <div class="stat"><div class="n" id="s_total">0</div><div class="l">전체 기록</div></div>
         <div class="stat"><div class="n" id="s_students">0</div><div class="l">학생 수</div></div>
-        <div class="stat"><div class="n" id="s_month">0</div><div class="l">이번 달</div></div>
-        <div class="stat"><div class="n" id="s_signed">0</div><div class="l">서명 완료</div></div>
+        <div class="stat"><div class="n" id="s_confirmed">0</div><div class="l">학생 확인(서명)</div></div>
+        <div class="stat"><div class="n" id="s_teacher">0</div><div class="l">교사 기록</div></div>
+        <div class="stat"><div class="n" id="s_recur">0</div><div class="l">재발 건수</div></div>
+        <div class="stat"><div class="n" id="s_notify">0</div><div class="l">보호자 통지</div></div>
       </div>
+      <div class="muted" id="a_summary" style="margin-top:10px"></div>
     </div>
     <div class="card">
       <h2>행동 유형별 건수</h2>
@@ -281,12 +321,47 @@
     </div>
     <div class="card">
       <h2>학생별 건수 (상위 10명)</h2>
+      <p class="muted" style="margin:-6px 0 8px">막대를 누르면 해당 학생의 기록만 모아 볼 수 있어요.</p>
       <canvas class="chart" id="chartStudent" height="260"></canvas>
+    </div>
+    <div class="card">
+      <h2>반별 건수</h2>
+      <canvas class="chart" id="chartClass" height="220"></canvas>
+    </div>
+    <div class="card">
+      <h2>요일별 분포</h2>
+      <canvas class="chart" id="chartDow" height="200"></canvas>
     </div>
     <div class="card">
       <h2>월별 추이 (최근 6개월)</h2>
       <canvas class="chart" id="chartMonth" height="220"></canvas>
     </div>
+  </section>
+
+  <!-- ============ ANALYSIS ============ -->
+  <section class="view" id="view-analysis">
+    <div class="card">
+      <h2>🔎 자동 분석</h2>
+      <div class="toolbar" style="margin-bottom:8px">
+        <select id="an_period" style="flex:1 1 150px">
+          <option value="all">전체 기간</option>
+          <option value="month">이번 달</option>
+          <option value="3m">최근 3개월</option>
+          <option value="6m">최근 6개월</option>
+          <option value="year">올해</option>
+        </select>
+        <select id="an_class" style="flex:1 1 130px"><option value="">전체 반</option></select>
+      </div>
+      <p class="muted" style="margin:0">이 분석은 외부 서버·AI 없이 <b>이 기기에 저장된 기록만으로</b> 계산됩니다. (오프라인 동작)</p>
+    </div>
+    <div class="card"><h2>핵심 인사이트</h2><div id="an_insights"></div></div>
+    <div class="card"><h2>⚠️ 관심 학생 (주의 필요)</h2><div id="an_watch"></div></div>
+    <div class="card">
+      <h2>학생 심화 분석</h2>
+      <select id="an_student"><option value="">학생 선택…</option></select>
+      <div id="an_profile"></div>
+    </div>
+    <div class="card"><h2>행동 유형 분석</h2><div id="an_types"></div></div>
   </section>
 
   <!-- ============ SETTINGS ============ -->
@@ -397,6 +472,7 @@
   let tags=load(LS_TAGS,DEFAULT_TAGS.slice());
   let confirmText=load(LS_CONFIRM,DEFAULT_CONFIRM);
   let selectedTypes=new Set();
+  let selectedKind="student";
 
   function toast(msg){const t=$("#toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("on"),2400);}
 
@@ -414,6 +490,7 @@
     $("#view-"+b.dataset.view).classList.add("active");
     if(b.dataset.view==="list") renderList();
     if(b.dataset.view==="stats") renderStats();
+    if(b.dataset.view==="analysis") renderAnalysis();
     if(b.dataset.view==="settings") renderTags();
     window.scrollTo(0,0);
   }));
@@ -428,6 +505,15 @@
       c.appendChild(el);
     });
   }
+
+  /* ---------- record kind (student / teacher) ---------- */
+  function applyKindUI(){
+    $$("#kindChips .chip").forEach(c=>c.classList.toggle("on", c.dataset.kind===selectedKind));
+    const teacher = selectedKind==="teacher";
+    $("#studentBlock").style.display = teacher ? "none" : "";
+    $("#teacherNote").style.display = teacher ? "" : "none";
+  }
+  $$("#kindChips .chip").forEach(c=>c.addEventListener("click",()=>{ selectedKind=c.dataset.kind; applyKindUI(); }));
 
   /* ---------- notify method toggle ---------- */
   $("#f_notify").addEventListener("change",()=>{
@@ -461,22 +547,27 @@
     $("#f_notify").value=""; $("#f_notifyAt").value=""; $("#notifyAtWrap").style.display="none";
     $("#f_recur").checked=false; $("#f_memo").value=""; $("#f_reflect").value="";
     $("#f_datetime").value=nowLocalInput();
+    selectedKind="student"; applyKindUI();
     selectedTypes.clear(); renderTypeChips();
     const r=pad.getBoundingClientRect(); pctx.clearRect(0,0,r.width,r.height); hasInk=false;
   }
   $("#saveBtn").addEventListener("click",()=>{
     const name=$("#f_name").value.trim(), behavior=$("#f_behavior").value.trim();
+    const isTeacher = selectedKind==="teacher";
     if(!name){toast("학생 이름을 입력하세요."); $("#f_name").focus(); return;}
     if(!behavior){toast("행동 내용을 입력하세요."); $("#f_behavior").focus(); return;}
-    if(!hasInk){toast("학생 서명을 받아주세요."); return;}
+    if(!isTeacher && !hasInk){toast("학생 서명을 받아주세요. (서명 없이 남기려면 ‘교사 개인 기록’을 선택하세요)"); return;}
     const teacher=$("#f_teacher").value.trim(); save(LS_TEACHER,teacher);
     const rec={
-      id:uid(), name, cls:$("#f_class").value.trim(), place:$("#f_place").value.trim(), teacher,
+      id:uid(), kind:selectedKind, name, cls:$("#f_class").value.trim(), place:$("#f_place").value.trim(), teacher,
       datetime:$("#f_datetime").value||nowLocalInput(), types:Array.from(selectedTypes),
       behavior, action:$("#f_action").value.trim(), witness:$("#f_witness").value.trim(),
       notify:$("#f_notify").value, notifyAt:$("#f_notify").value?$("#f_notifyAt").value:"",
-      recur:$("#f_recur").checked, memo:$("#f_memo").value.trim(), reflect:$("#f_reflect").value.trim(),
-      confirm:confirmText, signature:pad.toDataURL("image/png"), created:new Date().toISOString()
+      recur:$("#f_recur").checked, memo:$("#f_memo").value.trim(),
+      reflect: isTeacher?"":$("#f_reflect").value.trim(),
+      confirm: isTeacher?"":confirmText,
+      signature: isTeacher?"":pad.toDataURL("image/png"),
+      created:new Date().toISOString()
     };
     records.push(rec); save(LS_REC,records); updateCount();
     toast("저장되었습니다 ✓"); resetForm();
@@ -499,12 +590,16 @@
       sort==="old"?(a.datetime||"").localeCompare(b.datetime||""):(b.datetime||"").localeCompare(a.datetime||""));
     return arr;
   }
+  function signStatus(r){
+    if(r.kind==="teacher") return '<span class="muted" style="font-weight:700">🧑‍🏫 교사 기록 · 서명 없음</span>';
+    return r.signature ? '<span class="signed">✓ 서명 완료</span>' : '<span class="unsigned">서명 없음</span>';
+  }
   function renderList(){
     const wrap=$("#recList"), arr=filteredRecords();
     if(!records.length){wrap.innerHTML='<div class="empty"><div class="big">📝</div>아직 저장된 기록이 없습니다.<br>‘기록 작성’ 탭에서 첫 기록을 남겨보세요.</div>'; return;}
     if(!arr.length){wrap.innerHTML='<div class="empty"><div class="big">🔍</div>조건에 맞는 기록이 없습니다.</div>'; return;}
     wrap.innerHTML=arr.map(r=>{
-      const tg=(r.types||[]).map(t=>'<span class="tag">'+esc(t)+'</span>').join("")+(r.recur?'<span class="tag red">재발</span>':"");
+      const tg=(r.kind==="teacher"?'<span class="tag" style="background:#e9ecef;color:#495057">교사 기록</span>':"")+(r.types||[]).map(t=>'<span class="tag">'+esc(t)+'</span>').join("")+(r.recur?'<span class="tag red">재발</span>':"");
       const meta=[]; if(r.place) meta.push("📍 "+esc(r.place)); if(r.teacher) meta.push("👤 "+esc(r.teacher));
       if(r.notify) meta.push("보호자통지: "+esc(r.notify));
       return '<div class="rec">'+
@@ -515,7 +610,7 @@
         '<div class="body"><b>행동:</b> '+esc((r.behavior||"").slice(0,120))+((r.behavior||"").length>120?"…":"")+'</div>'+
         (meta.length?'<div class="meta2">'+meta.join("  ·  ")+'</div>':'')+
         '<div class="acts">'+
-          '<span class="'+(r.signature?"signed":"unsigned")+'">'+(r.signature?"✓ 서명 완료":"서명 없음")+'</span>'+
+          signStatus(r)+
           '<span class="sp"></span>'+
           '<button class="btn grey sm" data-act="view" data-id="'+r.id+'">상세</button>'+
           '<button class="btn ghost sm" data-act="print" data-id="'+r.id+'">PDF 출력</button>'+
@@ -545,6 +640,7 @@
     const tg=(r.types||[]).map(t=>'<span class="tag">'+esc(t)+'</span>').join(" ")+(r.recur?' <span class="tag red">재발</span>':"")||'<span class="muted">-</span>';
     let h='<div class="toolbar" style="margin-bottom:6px"><h3 style="flex:1">'+esc(r.name)+(r.cls?' <span class="muted" style="font-size:14px">('+esc(r.cls)+')</span>':'')+'</h3>'+
       '<button class="btn grey sm" id="mClose">닫기</button></div>';
+    h+=kv("기록 유형", r.kind==="teacher"?'교사 개인 기록 <span class="muted">(학생 서명 없음)</span>':'학생 확인 기록');
     h+=kv("날짜·시간",esc(fmtDate(r.datetime)));
     if(r.place) h+=kv("발생 장소",esc(r.place));
     if(r.teacher) h+=kv("담당 교사",esc(r.teacher));
@@ -553,10 +649,14 @@
     h+=kv("조치·지도 사항",esc(r.action||"-").replace(/\n/g,"<br>"));
     if(r.witness) h+=kv("관련 학생·목격자",esc(r.witness));
     if(r.notify) h+=kv("보호자 통지",esc(r.notify)+(r.notifyAt?" ("+esc(fmtDate(r.notifyAt))+")":""));
-    if(r.memo) h+=kv("비고",esc(r.memo).replace(/\n/g,"<br>"));
-    h+=kv("학생 반성 내용",esc(r.reflect||"-").replace(/\n/g,"<br>"));
-    h+=kv("확인 문구",esc(r.confirm||""));
-    h+=kv("학생 서명",r.signature?'<img class="sig-view" src="'+r.signature+'">':'<span class="muted">서명 없음</span>');
+    if(r.memo) h+=kv("특이사항",esc(r.memo).replace(/\n/g,"<br>"));
+    if(r.kind==="teacher"){
+      h+=kv("학생 서명",'<span class="muted">교사 개인 기록 · 학생 서명 없음</span>');
+    }else{
+      h+=kv("학생 반성 내용",esc(r.reflect||"-").replace(/\n/g,"<br>"));
+      h+=kv("확인 문구",esc(r.confirm||""));
+      h+=kv("학생 서명",r.signature?'<img class="sig-view" src="'+r.signature+'">':'<span class="muted">서명 없음</span>');
+    }
     h+='<div class="toolbar" style="margin-top:14px"><button class="btn ghost sm" id="mPrint">PDF 출력</button><button class="btn danger sm" id="mDel">삭제</button></div>';
     $("#detailBox").innerHTML=h; $("#detailModal").classList.add("on");
     $("#mClose").onclick=closeModal; $("#mPrint").onclick=()=>{closeModal(); printRecord(r);}; $("#mDel").onclick=()=>{closeModal(); delRecord(r);};
@@ -574,32 +674,86 @@
     rows.push(["조치·지도 사항",esc(r.action||"-").replace(/\n/g,"<br>")]);
     if(r.witness) rows.push(["관련 학생·목격자",esc(r.witness)]);
     if(r.notify) rows.push(["보호자 통지",esc(r.notify)+(r.notifyAt?" ("+esc(fmtDate(r.notifyAt))+")":"")]);
-    if(r.memo) rows.push(["비고",esc(r.memo).replace(/\n/g,"<br>")]);
-    rows.push(["학생 반성 내용",esc(r.reflect||"-").replace(/\n/g,"<br>")]);
+    if(r.memo) rows.push(["특이사항",esc(r.memo).replace(/\n/g,"<br>")]);
+    const teacher = (r.kind==="teacher");
+    if(!teacher) rows.push(["학생 반성 내용",esc(r.reflect||"-").replace(/\n/g,"<br>")]);
     const tr=rows.map(x=>'<tr><th>'+x[0]+'</th><td>'+x[1]+'</td></tr>').join("");
-    $("#printArea").innerHTML='<div class="sheet"><h2>학 생 행 동 기 록</h2><div class="sub">Student Behavior Record</div>'+
-      '<table class="sheet-t">'+tr+'</table>'+
-      '<div style="margin-top:18px; font-size:14px">'+esc(r.confirm||"")+'</div>'+
-      '<div class="sign-line"><span>학생 서명 :</span>'+(r.signature?'<img src="'+r.signature+'">':'<span style="border-bottom:1px solid #000; width:160px">&nbsp;</span>')+'</div></div>';
+    const title = teacher ? "교 사 관 찰 기 록" : "학 생 행 동 기 록";
+    const footer = teacher
+      ? '<div style="margin-top:22px; font-size:13px; color:#555">※ 교사 개인 기록입니다. 학생 확인 서명을 받지 않은 문서입니다.</div>'
+      : '<div style="margin-top:18px; font-size:14px">'+esc(r.confirm||"")+'</div>'+
+        '<div class="sign-line"><span>학생 서명 :</span>'+(r.signature?'<img src="'+r.signature+'">':'<span style="border-bottom:1px solid #000; width:160px">&nbsp;</span>')+'</div>';
+    $("#printArea").innerHTML='<div class="sheet"><h2>'+title+'</h2><div class="sub">Student Behavior Record</div>'+
+      '<table class="sheet-t">'+tr+'</table>'+footer+'</div>';
     window.print();
   }
 
-  /* ---------- stats ---------- */
+  /* ---------- stats / analysis ---------- */
+  function fillClassFilter(){
+    const sel=$("#a_class"), cur=sel.value;
+    const classes=Array.from(new Set(records.map(r=>r.cls).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"ko"));
+    sel.innerHTML='<option value="">전체 반</option>'+classes.map(c=>'<option>'+esc(c)+'</option>').join(""); sel.value=cur;
+  }
+  function statsFiltered(){
+    const period=$("#a_period").value, cls=$("#a_class").value, now=new Date();
+    let from=null;
+    if(period==="month") from=new Date(now.getFullYear(),now.getMonth(),1);
+    else if(period==="3m") from=new Date(now.getFullYear(),now.getMonth()-2,1);
+    else if(period==="6m") from=new Date(now.getFullYear(),now.getMonth()-5,1);
+    else if(period==="year") from=new Date(now.getFullYear(),0,1);
+    const fromStr = from? (from.getFullYear()+"-"+String(from.getMonth()+1).padStart(2,"0")+"-01") : null;
+    return records.filter(r=>{
+      if(cls && (r.cls||"")!==cls) return false;
+      if(fromStr && (r.datetime||"").slice(0,10) < fromStr) return false;
+      return true;
+    });
+  }
   function renderStats(){
-    $("#s_total").textContent=records.length;
-    $("#s_students").textContent=new Set(records.map(r=>r.name+"|"+(r.cls||""))).size;
-    const nowYm=ymKey(new Date().toISOString());
-    $("#s_month").textContent=records.filter(r=>ymKey(r.datetime)===nowYm).length;
-    $("#s_signed").textContent=records.filter(r=>!!r.signature).length;
-    const typeCount={}; records.forEach(r=>{(r.types&&r.types.length?r.types:["(미분류)"]).forEach(t=>typeCount[t]=(typeCount[t]||0)+1);});
+    fillClassFilter();
+    const rs=statsFiltered();
+    $("#s_total").textContent=rs.length;
+    $("#s_students").textContent=new Set(rs.map(r=>r.name+"|"+(r.cls||""))).size;
+    $("#s_confirmed").textContent=rs.filter(r=>r.kind!=="teacher" && r.signature).length;
+    $("#s_teacher").textContent=rs.filter(r=>r.kind==="teacher").length;
+    $("#s_recur").textContent=rs.filter(r=>r.recur).length;
+    $("#s_notify").textContent=rs.filter(r=>r.notify).length;
+    const typeCount={}; rs.forEach(r=>{(r.types&&r.types.length?r.types:["(미분류)"]).forEach(t=>typeCount[t]=(typeCount[t]||0)+1);});
+    const topType=Object.entries(typeCount).sort((a,b)=>b[1]-a[1])[0];
+    const notifyRate = rs.length? Math.round(rs.filter(r=>r.notify).length/rs.length*100):0;
+    $("#a_summary").textContent = rs.length
+      ? ("최다 유형: "+(topType?topType[0]+" ("+topType[1]+"건)":"-")+"   ·   보호자 통지율 "+notifyRate+"%")
+      : "선택한 조건에 해당하는 기록이 없습니다.";
     barChart($("#chartType"), Object.entries(typeCount).sort((a,b)=>b[1]-a[1]));
-    const stuCount={}; records.forEach(r=>{const k=r.name+(r.cls?" ("+r.cls+")":""); stuCount[k]=(stuCount[k]||0)+1;});
+    const stuCount={}; rs.forEach(r=>{const k=r.name+(r.cls?" ("+r.cls+")":""); stuCount[k]=(stuCount[k]||0)+1;});
     barChart($("#chartStudent"), Object.entries(stuCount).sort((a,b)=>b[1]-a[1]).slice(0,10));
+    const clsCount={}; rs.forEach(r=>{const k=r.cls||"(미기재)"; clsCount[k]=(clsCount[k]||0)+1;});
+    barChart($("#chartClass"), Object.entries(clsCount).sort((a,b)=>b[1]-a[1]));
+    const dowNames=["일","월","화","수","목","금","토"], dow=[0,0,0,0,0,0,0];
+    rs.forEach(r=>{const d=new Date(r.datetime); if(!isNaN(d)) dow[d.getDay()]++;});
+    barChart($("#chartDow"), dowNames.map((n,i)=>[n,dow[i]]), true);
     const months=[]; const base=new Date();
     for(let i=5;i>=0;i--){const d=new Date(base.getFullYear(),base.getMonth()-i,1); months.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"));}
-    barChart($("#chartMonth"), months.map(m=>[m.slice(5)+"월", records.filter(r=>ymKey(r.datetime)===m).length]), true);
+    const clsSel=$("#a_class").value, forMonth=records.filter(r=>!clsSel||(r.cls||"")===clsSel);
+    barChart($("#chartMonth"), months.map(m=>[m.slice(5)+"월", forMonth.filter(r=>ymKey(r.datetime)===m).length]), true);
+    bindStudentDrill();
   }
+  function bindStudentDrill(){
+    const cv=$("#chartStudent"); if(cv._bound) return; cv._bound=true; cv.style.cursor="pointer";
+    cv.addEventListener("click",ev=>{
+      const rect=cv.getBoundingClientRect(), y=ev.clientY-rect.top, hits=cv._hits||[];
+      const hit=hits.find(h=>y>=h.y0-3 && y<=h.y1+3); if(!hit) return;
+      const name=String(hit.label).replace(/\s*\([^)]*\)\s*$/,"");
+      $$("nav.tabs button").forEach(x=>x.classList.remove("active"));
+      document.querySelector('nav.tabs button[data-view="list"]').classList.add("active");
+      $$(".view").forEach(v=>v.classList.remove("active")); $("#view-list").classList.add("active");
+      $("#q_search").value=name; renderList(); window.scrollTo(0,0);
+      toast("‘"+name+"’ 학생 기록만 보기");
+    });
+  }
+  $("#a_period").addEventListener("change",renderStats);
+  $("#a_class").addEventListener("change",renderStats);
   function barChart(canvas, data, keepOrder){
+    canvas._hits=null;
     const dpr=window.devicePixelRatio||1, cssW=canvas.clientWidth||canvas.parentElement.clientWidth-36, rows=data.length;
     const cssH= keepOrder ? 200 : Math.max(120, rows*36+30);
     canvas.style.height=cssH+"px"; canvas.width=Math.round(cssW*dpr); canvas.height=Math.round(cssH*dpr);
@@ -615,16 +769,140 @@
       ctx.textAlign="left";
     }else{
       const labelW=Math.min(150, Math.max(70, cssW*0.32)), bh=Math.min(26,(cssH-20)/data.length-8), gap=((cssH-20)/data.length)-bh;
+      const hits=[];
       data.forEach((d,i)=>{const y=10+i*(bh+gap), bw=(cssW-labelW-40)*(d[1]/max);
         ctx.fillStyle="#5b6675"; ctx.font="13px sans-serif"; ctx.textAlign="right"; ctx.fillText(clip(d[0],10), labelW-6, y+bh/2+4);
         ctx.fillStyle=PALETTE[i%PALETTE.length]; roundRect(ctx,labelW,y,Math.max(2,bw),bh,5); ctx.fill();
-        ctx.fillStyle="#1f2733"; ctx.font="bold 13px sans-serif"; ctx.textAlign="left"; ctx.fillText(d[1], labelW+Math.max(2,bw)+6, y+bh/2+5);});
+        ctx.fillStyle="#1f2733"; ctx.font="bold 13px sans-serif"; ctx.textAlign="left"; ctx.fillText(d[1], labelW+Math.max(2,bw)+6, y+bh/2+5);
+        hits.push({y0:y, y1:y+bh, label:d[0]});});
+      canvas._hits=hits;
       ctx.textAlign="left";
     }
   }
   function clip(s,n){s=String(s); return s.length>n?s.slice(0,n-1)+"…":s;}
   function roundRect(ctx,x,y,w,h,r){r=Math.min(r,h/2,w/2); ctx.beginPath(); ctx.moveTo(x+r,y);
     ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();}
+
+  /* ---------- analysis (100% local, no API) ---------- */
+  function daysAgo(n){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-n); return d; }
+  function fillAnalysisFilters(){
+    const cs=$("#an_class"), ccur=cs.value;
+    const classes=Array.from(new Set(records.map(r=>r.cls).filter(Boolean))).sort((a,b)=>a.localeCompare(b,"ko"));
+    cs.innerHTML='<option value="">전체 반</option>'+classes.map(c=>'<option>'+esc(c)+'</option>').join(""); cs.value=ccur;
+    const ss=$("#an_student"), scur=ss.value;
+    const studs=Array.from(new Set(records.map(r=>r.name+(r.cls?" ("+r.cls+")":"")))).sort((a,b)=>a.localeCompare(b,"ko"));
+    ss.innerHTML='<option value="">학생 선택…</option>'+studs.map(s=>'<option>'+esc(s)+'</option>').join(""); ss.value=scur;
+  }
+  function analysisFiltered(){
+    const period=$("#an_period").value, cls=$("#an_class").value, now=new Date();
+    let from=null;
+    if(period==="month") from=new Date(now.getFullYear(),now.getMonth(),1);
+    else if(period==="3m") from=new Date(now.getFullYear(),now.getMonth()-2,1);
+    else if(period==="6m") from=new Date(now.getFullYear(),now.getMonth()-5,1);
+    else if(period==="year") from=new Date(now.getFullYear(),0,1);
+    const fromStr=from?(from.getFullYear()+"-"+String(from.getMonth()+1).padStart(2,"0")+"-01"):null;
+    return records.filter(r=>{ if(cls&&(r.cls||"")!==cls) return false; if(fromStr&&(r.datetime||"").slice(0,10)<fromStr) return false; return true; });
+  }
+  function gotoStudentList(name){
+    $$("nav.tabs button").forEach(x=>x.classList.remove("active"));
+    document.querySelector('nav.tabs button[data-view="list"]').classList.add("active");
+    $$(".view").forEach(v=>v.classList.remove("active")); $("#view-list").classList.add("active");
+    $("#q_search").value=name; renderList(); window.scrollTo(0,0); toast("‘"+name+"’ 학생 기록만 보기");
+  }
+  function insHtml(icon,text,cls){ return '<div class="ins '+(cls||"")+'"><span class="ic">'+icon+'</span><span>'+text+'</span></div>'; }
+
+  function renderAnalysis(){ fillAnalysisFilters(); const rs=analysisFiltered(); renderInsights(rs); renderWatchlist(rs); renderTypeAnalysis(rs); renderProfile(); }
+
+  function renderInsights(rs){
+    const box=$("#an_insights");
+    if(!rs.length){ box.innerHTML='<p class="muted">해당 조건에 기록이 없습니다.</p>'; return; }
+    const out=[]; const d14=daysAgo(14), d28=daysAgo(28);
+    out.push(insHtml("📊","선택 구간 총 <b>"+rs.length+"건</b>, 학생 <b>"+new Set(rs.map(r=>r.name+"|"+(r.cls||""))).size+"명</b>."));
+    const rec=rs.filter(r=>new Date(r.datetime)>=d14).length, prev=rs.filter(r=>{const d=new Date(r.datetime); return d>=d28&&d<d14;}).length;
+    if(rec||prev){ let msg,cls="";
+      if(prev===0&&rec>0){ msg="최근 2주 <b>"+rec+"건</b> (직전 2주 0건) — 새로 발생하고 있습니다."; cls="warn"; }
+      else{ const pct=prev?Math.round((rec-prev)/prev*100):0;
+        if(rec>prev){ msg="최근 2주 <b>"+rec+"건</b>으로 직전 2주("+prev+"건) 대비 <b>"+pct+"% 증가</b>."; cls="warn"; }
+        else if(rec<prev){ msg="최근 2주 <b>"+rec+"건</b>으로 직전 2주("+prev+"건) 대비 <b>"+Math.abs(pct)+"% 감소</b>."; cls="good"; }
+        else msg="최근 2주 발생 건수는 직전 2주와 동일합니다 (<b>"+rec+"건</b>)."; }
+      out.push(insHtml("📈",msg,cls)); }
+    const tc={}; rs.forEach(r=>(r.types&&r.types.length?r.types:["(미분류)"]).forEach(t=>tc[t]=(tc[t]||0)+1));
+    const top=Object.entries(tc).sort((a,b)=>b[1]-a[1])[0];
+    if(top) out.push(insHtml("🏷️","가장 많은 행동 유형은 <b>"+esc(top[0])+"</b> ("+top[1]+"건, 전체의 "+Math.round(top[1]/rs.length*100)+"%)."));
+    const dowN=["일","월","화","수","목","금","토"], dow=[0,0,0,0,0,0,0];
+    rs.forEach(r=>{const d=new Date(r.datetime); if(!isNaN(d)) dow[d.getDay()]++;});
+    const mDow=dow.indexOf(Math.max(...dow)); if(dow[mDow]>0) out.push(insHtml("🗓️","<b>"+dowN[mDow]+"요일</b>에 가장 많이 발생했습니다 ("+dow[mDow]+"건)."));
+    const hours=new Array(24).fill(0); let hk=0; rs.forEach(r=>{const d=new Date(r.datetime); if(!isNaN(d)){hours[d.getHours()]++; hk++;}});
+    if(hk){ const mh=hours.indexOf(Math.max(...hours)); if(hours[mh]>0) out.push(insHtml("⏰","시간대는 <b>"+mh+"시경</b>에 가장 집중됩니다.")); }
+    const recur=rs.filter(r=>r.recur).length; if(recur) out.push(insHtml("🔁","재발(반복) 표시 사안이 <b>"+recur+"건</b> ("+Math.round(recur/rs.length*100)+"%) 있습니다.", recur/rs.length>=0.3?"warn":""));
+    const notify=rs.filter(r=>r.notify).length; out.push(insHtml("📞","보호자 통지율 <b>"+Math.round(notify/rs.length*100)+"%</b> ("+notify+"/"+rs.length+"건).", notify/rs.length<0.2?"warn":""));
+    const tRec=rs.filter(r=>r.kind==="teacher").length; if(tRec) out.push(insHtml("🧑‍🏫","교사 개인 기록 <b>"+tRec+"건</b> · 학생 확인 기록 <b>"+(rs.length-tRec)+"건</b>."));
+    const rbs={}; rs.filter(r=>new Date(r.datetime)>=d14).forEach(r=>{const k=r.name+(r.cls?" ("+r.cls+")":""); rbs[k]=(rbs[k]||0)+1;});
+    const spike=Object.entries(rbs).sort((a,b)=>b[1]-a[1])[0];
+    if(spike&&spike[1]>=2) out.push(insHtml("🚩","최근 2주 <b>"+esc(spike[0])+"</b> 학생 기록이 <b>"+spike[1]+"건</b>으로 가장 많습니다. 관심이 필요합니다.","warn"));
+    box.innerHTML=out.join("");
+  }
+
+  function renderWatchlist(rs){
+    const box=$("#an_watch"), d14=daysAgo(14), map={};
+    rs.forEach(r=>{ const k=r.name+(r.cls?" ("+r.cls+")":"");
+      const m=map[k]||(map[k]={name:r.name,cls:r.cls,count:0,recent:0,recur:0,notify:0,types:{}});
+      m.count++; if(new Date(r.datetime)>=d14) m.recent++; if(r.recur) m.recur++; if(r.notify) m.notify++;
+      (r.types||[]).forEach(t=>m.types[t]=(m.types[t]||0)+1); });
+    const arr=Object.values(map).map(m=>{ m.score=m.count+m.recent*2+m.recur*3; m.topType=Object.entries(m.types).sort((a,b)=>b[1]-a[1])[0]; return m; });
+    const flagged=arr.filter(m=>m.count>=3||m.recent>=2||m.recur>=2).sort((a,b)=>b.score-a.score).slice(0,8);
+    if(!flagged.length){ box.innerHTML='<p class="muted" style="margin:0">현재 특별히 주의가 필요한 학생은 없습니다. (기준: 총 3건 이상 · 최근 2주 2건 이상 · 재발 2건 이상)</p>'; return; }
+    box.innerHTML='<p class="muted" style="margin:0 0 6px">기준: 총 3건↑ · 최근 2주 2건↑ · 재발 2건↑ 중 하나라도 해당. 이름을 누르면 해당 학생 기록을 봅니다.</p>'+
+      flagged.map(m=>{ const pills=['<span class="pill red">총 '+m.count+'건</span>'];
+        if(m.recent) pills.push('<span class="pill">최근2주 '+m.recent+'</span>');
+        if(m.recur) pills.push('<span class="pill red">재발 '+m.recur+'</span>');
+        if(m.notify) pills.push('<span class="pill blue">통지 '+m.notify+'</span>');
+        if(m.topType) pills.push('<span class="pill">'+esc(m.topType[0])+'</span>');
+        return '<div class="wrow"><a href="#" class="nm" data-stu="'+esc(m.name)+'">'+esc(m.name)+'</a>'+(m.cls?' <span class="muted">('+esc(m.cls)+')</span>':'')+'<span style="flex:1"></span>'+pills.join(" ")+'</div>'; }).join("");
+    box.querySelectorAll("a[data-stu]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault(); gotoStudentList(a.dataset.stu);}));
+  }
+
+  function renderProfile(){
+    const box=$("#an_profile"), sel=$("#an_student").value;
+    if(!sel){ box.innerHTML='<p class="muted" style="margin-top:10px">학생을 선택하면 상세 분석이 표시됩니다.</p>'; return; }
+    const name=sel.replace(/\s*\([^)]*\)\s*$/,""), cm=sel.match(/\(([^)]*)\)\s*$/), cls=cm?cm[1]:"";
+    const rs=analysisFiltered().filter(r=>r.name===name && (r.cls||"")===(cls||""));
+    if(!rs.length){ box.innerHTML='<p class="muted" style="margin-top:10px">이 구간에 해당 학생 기록이 없습니다.</p>'; return; }
+    const sorted=rs.slice().sort((a,b)=>(b.datetime||"").localeCompare(a.datetime||""));
+    const tc={}; rs.forEach(r=>(r.types||[]).forEach(t=>tc[t]=(tc[t]||0)+1));
+    const typeStr=Object.entries(tc).sort((a,b)=>b[1]-a[1]).map(x=>esc(x[0])+" "+x[1]).join(", ")||"-";
+    const grid=[['총 기록',rs.length],['학생확인',rs.filter(r=>r.kind!=="teacher").length],['교사기록',rs.filter(r=>r.kind==="teacher").length],['재발',rs.filter(r=>r.recur).length],['보호자통지',rs.filter(r=>r.notify).length]];
+    let h='<div class="prof-grid">'+grid.map(g=>'<div class="pg"><div class="n">'+g[1]+'</div><div class="l">'+g[0]+'</div></div>').join("")+'</div>';
+    h+='<div class="kv"><b>기록 기간</b>'+esc(fmtDate(sorted[sorted.length-1].datetime))+' ~ '+esc(fmtDate(sorted[0].datetime))+'</div>';
+    h+='<div class="kv"><b>유형 분포</b>'+typeStr+'</div>';
+    h+='<div class="kv"><b>최근 기록</b></div>';
+    h+=sorted.slice(0,5).map(r=>'<div class="wrow"><span class="muted" style="min-width:150px">'+esc(fmtDate(r.datetime))+'</span>'+
+      (r.types&&r.types.length?'<span class="pill">'+esc(r.types[0])+'</span>':'')+(r.recur?' <span class="pill red">재발</span>':'')+
+      '<span style="flex:1; min-width:100px">'+esc((r.behavior||"").slice(0,40))+((r.behavior||"").length>40?"…":"")+'</span>'+
+      '<button class="btn grey sm" data-id="'+r.id+'">보기</button></div>').join("");
+    box.innerHTML=h;
+    box.querySelectorAll("button[data-id]").forEach(b=>b.addEventListener("click",()=>{const r=records.find(x=>x.id===b.dataset.id); if(r) showDetail(r);}));
+  }
+
+  function renderTypeAnalysis(rs){
+    const box=$("#an_types"); if(!rs.length){ box.innerHTML='<p class="muted" style="margin:0">데이터가 없습니다.</p>'; return; }
+    const d14=daysAgo(14), d28=daysAgo(28), tc={};
+    rs.forEach(r=>(r.types&&r.types.length?r.types:["(미분류)"]).forEach(t=>{
+      const m=tc[t]||(tc[t]={c:0,rec:0,prev:0,stu:{}}); m.c++;
+      const d=new Date(r.datetime); if(d>=d14)m.rec++; else if(d>=d28&&d<d14)m.prev++;
+      const k=r.name+(r.cls?" ("+r.cls+")":""); m.stu[k]=(m.stu[k]||0)+1; }));
+    box.innerHTML=Object.entries(tc).sort((a,b)=>b[1].c-a[1].c).map(([t,m])=>{
+      const topS=Object.entries(m.stu).sort((a,b)=>b[1]-a[1])[0];
+      let tr='→',col='#868e96'; if(m.rec>m.prev){tr='▲';col='#c92a2a';} else if(m.rec<m.prev){tr='▼';col='#2b8a3e';}
+      return '<div class="wrow"><span class="nm" style="min-width:104px; color:var(--ink)">'+esc(t)+'</span>'+
+        '<span class="pill">'+m.c+'건 · '+Math.round(m.c/rs.length*100)+'%</span>'+
+        '<span class="pill" style="color:'+col+'">최근 '+tr+' '+m.rec+'</span>'+
+        (topS?'<span class="muted">최다: '+esc(topS[0])+' '+topS[1]+'건</span>':'')+'</div>'; }).join("");
+  }
+
+  $("#an_period").addEventListener("change",renderAnalysis);
+  $("#an_class").addEventListener("change",renderAnalysis);
+  $("#an_student").addEventListener("change",renderProfile);
 
   /* ---------- settings: tags ---------- */
   function renderTags(){
@@ -650,12 +928,13 @@
     document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},100);}
   function today(){const d=new Date(), p=n=>String(n).padStart(2,"0"); return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate());}
   function csvText(){
-    const cols=["날짜시간","이름","반","발생장소","담당교사","행동유형","행동내용","조치지도","관련학생목격자","보호자통지","통지일시","재발여부","비고","학생반성","확인문구","서명여부"];
+    const cols=["날짜시간","기록유형","이름","반","발생장소","담당교사","행동유형","행동내용","조치지도","관련학생목격자","보호자통지","통지일시","재발여부","특이사항","학생반성","확인문구","학생서명여부"];
     const q=s=>'"'+String(s==null?"":s).replace(/"/g,'""')+'"';
     const lines=[cols.map(q).join(",")];
     records.slice().sort((a,b)=>(a.datetime||"").localeCompare(b.datetime||"")).forEach(r=>{
-      lines.push([fmtDate(r.datetime),r.name,r.cls,r.place,r.teacher,(r.types||[]).join(" / "),r.behavior,r.action,r.witness,
-        r.notify,r.notifyAt?fmtDate(r.notifyAt):"",r.recur?"재발":"",r.memo,r.reflect,r.confirm,r.signature?"서명있음":"없음"].map(q).join(","));});
+      const signCol = r.kind==="teacher" ? "해당없음(교사기록)" : (r.signature?"서명받음":"서명없음");
+      lines.push([fmtDate(r.datetime),(r.kind==="teacher"?"교사개인":"학생확인"),r.name,r.cls,r.place,r.teacher,(r.types||[]).join(" / "),r.behavior,r.action,r.witness,
+        r.notify,r.notifyAt?fmtDate(r.notifyAt):"",r.recur?"재발":"",r.memo,r.reflect,r.confirm,signCol].map(q).join(","));});
     return "﻿"+lines.join("\r\n");
   }
   $("#expCsv").addEventListener("click",()=>{if(!records.length){toast("내보낼 기록이 없습니다."); return;}
@@ -780,7 +1059,7 @@
     $("#f_datetime").value=nowLocalInput();
     $("#f_teacher").value=load(LS_TEACHER,"");
     $("#confirmText").textContent=confirmText;
-    renderTypeChips(); fillTypeFilter(); updateCount(); setDriveUI(); fitPad();
+    renderTypeChips(); applyKindUI(); fillTypeFilter(); updateCount(); setDriveUI(); fitPad();
   }
   window.addEventListener("resize",()=>{fitPad(); if($("#view-stats").classList.contains("active")) renderStats();});
   window.addEventListener("load",fitPad);
